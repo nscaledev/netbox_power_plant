@@ -1,0 +1,41 @@
+{% extends 'generic/object.html' %}
+{% load helpers %}
+
+{% block content %}
+  <div class="row">
+    <div class="col-md-8">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Rack Delivery Point Details</h2>
+        </div>
+        <div class="card-body">
+          <table class="table table-hover attr-table mb-0">
+            <tr><th>Power System</th><td>{{ object.power_system|linkify }}</td></tr>
+            <tr><th>Electrical Node</th><td>{{ object.electrical_node|linkify|default:'—' }}</td></tr>
+            <tr><th>Electrical Terminal</th><td>{{ object.electrical_terminal|linkify|default:'—' }}</td></tr>
+            <tr><th>Rack</th><td>{{ object.rack|linkify|default:'—' }}</td></tr>
+            <tr><th>Device</th><td>{{ object.device|linkify|default:'—' }}</td></tr>
+            <tr><th>Expected Redundancy Group</th><td>{{ object.expected_redundancy_group|linkify|default:'—' }}</td></tr>
+            <tr><th>Delivery Role</th><td>{{ object.delivery_role|default:'—' }}</td></tr>
+            <tr><th>Feed Label</th><td>{{ object.feed_label|default:'—' }}</td></tr>
+            <tr><th>Design State</th><td>{{ object.get_design_state_display }}</td></tr>
+            <tr><th>Description</th><td>{{ object.description|default:'—' }}</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Boundary Summary</h2>
+        </div>
+        <div class="card-body">
+          <dl class="row mb-0">
+            <dt class="col-7">Target Type</dt><dd class="col-5 text-end">{% if object.rack %}Rack{% elif object.device %}Device{% else %}—{% endif %}</dd>
+            <dt class="col-7">Graph Anchor</dt><dd class="col-5 text-end">{% if object.electrical_terminal %}Terminal{% elif object.electrical_node %}Node{% else %}—{% endif %}</dd>
+          </dl>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}

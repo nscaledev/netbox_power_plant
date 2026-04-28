@@ -1,0 +1,40 @@
+{% extends 'generic/object.html' %}
+{% load helpers %}
+
+{% block content %}
+  <div class="row">
+    <div class="col-md-8">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Segment Details</h2>
+        </div>
+        <div class="card-body">
+          <table class="table table-hover attr-table mb-0">
+            <tr><th>Power System</th><td>{{ object.power_system|linkify }}</td></tr>
+            <tr><th>Power Domain</th><td>{{ object.power_domain|linkify|default:'—' }}</td></tr>
+            <tr><th>From Terminal</th><td>{{ object.from_terminal|linkify }}</td></tr>
+            <tr><th>To Terminal</th><td>{{ object.to_terminal|linkify }}</td></tr>
+            <tr><th>Segment Kind</th><td>{{ object.get_segment_kind_display }}</td></tr>
+            <tr><th>Path State</th><td>{{ object.get_path_state_display }}</td></tr>
+            <tr><th>Voltage</th><td>{{ object.voltage_nominal|default:'—' }}</td></tr>
+            <tr><th>Ampacity</th><td>{{ object.ampacity_a|default:'—' }}</td></tr>
+            <tr><th>Description</th><td>{{ object.description|default:'—' }}</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Endpoints</h2>
+        </div>
+        <div class="card-body">
+          <ul class="list-group list-group-flush">
+            <li class="list-group-item px-0">From node: {{ object.from_terminal.node|linkify }}</li>
+            <li class="list-group-item px-0">To node: {{ object.to_terminal.node|linkify }}</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}

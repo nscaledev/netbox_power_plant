@@ -1,0 +1,46 @@
+{% extends 'generic/_base.html' %}
+{% load render_table from django_tables2 %}
+
+{% block title %}Power Plant Overview{% endblock %}
+
+{% block content %}
+  <div class="row row-deck mb-4">
+    <div class="col-md-4">
+      <div class="card">
+        <div class="card-body">
+          <div class="text-secondary text-uppercase small">Power Systems</div>
+          <div class="display-6">{{ power_system_count }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card">
+        <div class="card-body">
+          <div class="text-secondary text-uppercase small">Power Domains</div>
+          <div class="display-6">{{ power_domain_count }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card">
+        <div class="card-body">
+          <div class="text-secondary text-uppercase small">Redundancy Groups</div>
+          <div class="display-6">{{ redundancy_group_count }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h2 class="card-title">Systems in Scope</h2>
+    </div>
+    <div class="card-body">
+      {% if systems %}
+        {% render_table systems_table 'inc/table.html' %}
+      {% else %}
+        <p class="text-secondary mb-0">No power systems have been created yet.</p>
+      {% endif %}
+    </div>
+  </div>
+{% endblock %}

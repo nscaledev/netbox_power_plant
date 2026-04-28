@@ -1,0 +1,40 @@
+{% extends 'generic/object.html' %}
+{% load helpers %}
+
+{% block content %}
+  <div class="row">
+    <div class="col-md-8">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Redundancy Contract</h2>
+        </div>
+        <div class="card-body">
+          <table class="table table-hover attr-table mb-0">
+            <tr><th>Power System</th><td>{{ object.power_system|linkify }}</td></tr>
+            <tr><th>Topology Type</th><td>{{ object.get_topology_type_display }}</td></tr>
+            <tr><th>Minimum Distinct Paths</th><td>{{ object.min_distinct_paths }}</td></tr>
+            <tr><th>Requires Domain Isolation</th><td>{{ object.requires_domain_isolation|yesno:'Yes,No' }}</td></tr>
+            <tr><th>Description</th><td>{{ object.description|default:'—' }}</td></tr>
+            <tr><th>Failover Notes</th><td>{{ object.notes_on_failover|default:'—' }}</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Participating Domains</h2>
+        </div>
+        <div class="card-body">
+          <ul class="list-group list-group-flush">
+            {% for domain in object.power_domains.all %}
+              <li class="list-group-item px-0">{{ domain|linkify }}</li>
+            {% empty %}
+              <li class="list-group-item px-0 text-secondary">No power domains have been assigned yet.</li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}

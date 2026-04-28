@@ -1,0 +1,50 @@
+{% extends 'generic/object.html' %}
+{% load render_table from django_tables2 %}
+
+{% block content %}
+  <div class="row row-deck mb-4">
+    <div class="col-md-4">
+      <div class="card">
+        <div class="card-body">
+          <div class="text-secondary text-uppercase small">Rack Delivery Endpoints</div>
+          <div class="display-6">{{ delivery_summary.delivery_count }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card">
+        <div class="card-body">
+          <div class="text-secondary text-uppercase small">Compliant</div>
+          <div class="display-6">{{ delivery_summary.compliant_count }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card">
+        <div class="card-body">
+          <div class="text-secondary text-uppercase small">Needs Attention</div>
+          <div class="display-6">{{ delivery_summary.noncompliant_count }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h2 class="card-title">Rack Delivery Summary</h2>
+    </div>
+    <div class="card-body">
+      {% if workflow_urls.delivery_add or workflow_urls.placement_add %}
+        <div class="d-flex gap-2 mb-3">
+          {% if workflow_urls.delivery_add %}<a class="btn btn-primary" href="{{ workflow_urls.delivery_add }}">Add Rack Delivery Point</a>{% endif %}
+          {% if workflow_urls.placement_add %}<a class="btn btn-outline-primary" href="{{ workflow_urls.placement_add }}">Add Facility Placement</a>{% endif %}
+        </div>
+      {% endif %}
+      {% if delivery_summary.rows %}
+        {% render_table delivery_table 'inc/table.html' %}
+      {% else %}
+        <p class="text-secondary mb-0">No active rack-boundary delivery endpoints have been derived yet.</p>
+      {% endif %}
+    </div>
+  </div>
+{% endblock %}

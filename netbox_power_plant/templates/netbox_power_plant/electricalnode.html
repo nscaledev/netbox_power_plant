@@ -1,0 +1,42 @@
+{% extends 'generic/object.html' %}
+{% load helpers %}
+
+{% block content %}
+  <div class="row">
+    <div class="col-md-8">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Node Details</h2>
+        </div>
+        <div class="card-body">
+          <table class="table table-hover attr-table mb-0">
+            <tr><th>Power System</th><td>{{ object.power_system|linkify }}</td></tr>
+            <tr><th>Site</th><td>{{ object.site|linkify }}</td></tr>
+            <tr><th>Location</th><td>{{ object.location|linkify|default:'—' }}</td></tr>
+            <tr><th>Parent Node</th><td>{{ object.parent_node|linkify|default:'—' }}</td></tr>
+            <tr><th>Node Kind</th><td>{{ object.get_node_kind_display }}</td></tr>
+            <tr><th>Install State</th><td>{{ object.get_install_state_display }}</td></tr>
+            <tr><th>Topology State</th><td>{{ object.get_topology_state_display }}</td></tr>
+            <tr><th>Phase Mode</th><td>{{ object.get_phase_mode_display }}</td></tr>
+            <tr><th>Installed Capacity</th><td>{{ object.installed_capacity_kw|default:'—' }}</td></tr>
+            <tr><th>Usable Capacity</th><td>{{ object.usable_capacity_kw|default:'—' }}</td></tr>
+            <tr><th>Description</th><td>{{ object.description|default:'—' }}</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Topology Attachment</h2>
+        </div>
+        <div class="card-body">
+          <dl class="row mb-0">
+            <dt class="col-7">Terminals</dt><dd class="col-5 text-end">{{ object.terminals.count }}</dd>
+            <dt class="col-7">Child Nodes</dt><dd class="col-5 text-end">{{ object.child_nodes.count }}</dd>
+          </dl>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}

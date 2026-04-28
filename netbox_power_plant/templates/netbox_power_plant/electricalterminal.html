@@ -1,0 +1,39 @@
+{% extends 'generic/object.html' %}
+{% load helpers %}
+
+{% block content %}
+  <div class="row">
+    <div class="col-md-8">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Terminal Details</h2>
+        </div>
+        <div class="card-body">
+          <table class="table table-hover attr-table mb-0">
+            <tr><th>Node</th><td>{{ object.node|linkify }}</td></tr>
+            <tr><th>Role</th><td>{{ object.get_terminal_role_display }}</td></tr>
+            <tr><th>Direction</th><td>{{ object.get_direction_display }}</td></tr>
+            <tr><th>Supply Type</th><td>{{ object.get_supply_type_display }}</td></tr>
+            <tr><th>Nominal Voltage</th><td>{{ object.voltage_nominal|default:'—' }}</td></tr>
+            <tr><th>Amperage Rating</th><td>{{ object.amperage_rating|default:'—' }}</td></tr>
+            <tr><th>Position Index</th><td>{{ object.position_index|default:'—' }}</td></tr>
+            <tr><th>Description</th><td>{{ object.description|default:'—' }}</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Connectivity</h2>
+        </div>
+        <div class="card-body">
+          <dl class="row mb-0">
+            <dt class="col-7">Outbound Segments</dt><dd class="col-5 text-end">{{ object.outbound_segments.count }}</dd>
+            <dt class="col-7">Inbound Segments</dt><dd class="col-5 text-end">{{ object.inbound_segments.count }}</dd>
+          </dl>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}

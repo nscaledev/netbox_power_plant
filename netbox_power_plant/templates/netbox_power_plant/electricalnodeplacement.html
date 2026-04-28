@@ -1,0 +1,47 @@
+{% extends 'generic/object.html' %}
+{% load helpers %}
+
+{% block content %}
+  <div class="row">
+    <div class="col-md-8">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Electrical Node Placement Details</h2>
+        </div>
+        <div class="card-body">
+          <table class="table table-hover attr-table mb-0">
+            <tr><th>Power System</th><td>{{ object.power_system|linkify }}</td></tr>
+            <tr><th>Electrical Node</th><td>{{ object.electrical_node|linkify }}</td></tr>
+            <tr><th>Site</th><td>{{ object.site|linkify }}</td></tr>
+            <tr><th>Location</th><td>{{ object.location|linkify|default:'—' }}</td></tr>
+            <tr><th>Placement Scope</th><td>{{ object.get_placement_scope_type_display }}</td></tr>
+            <tr><th>X</th><td>{{ object.x }}</td></tr>
+            <tr><th>Y</th><td>{{ object.y }}</td></tr>
+            <tr><th>Width</th><td>{{ object.width|default:'—' }}</td></tr>
+            <tr><th>Height</th><td>{{ object.height|default:'—' }}</td></tr>
+            <tr><th>Rotation</th><td>{{ object.rotation_degrees }}&deg;</td></tr>
+            <tr><th>Symbol Kind</th><td>{{ object.get_symbol_kind_display }}</td></tr>
+            <tr><th>Label Mode</th><td>{{ object.get_label_mode_display }}</td></tr>
+            <tr><th>Color</th><td>{{ object.color|default:'—' }}</td></tr>
+            <tr><th>Z-index</th><td>{{ object.z_index }}</td></tr>
+            <tr><th>Description</th><td>{{ object.description|default:'—' }}</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Overlay Summary</h2>
+        </div>
+        <div class="card-body">
+          <dl class="row mb-0">
+            <dt class="col-7">Resolved Scope</dt><dd class="col-5 text-end">{{ object.get_placement_scope_type_display }}</dd>
+            <dt class="col-7">Anchor Node Kind</dt><dd class="col-5 text-end">{{ object.electrical_node.get_node_kind_display }}</dd>
+            <dt class="col-7">Overlay Label</dt><dd class="col-5 text-end">{{ object.get_label_mode_display }}</dd>
+          </dl>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}

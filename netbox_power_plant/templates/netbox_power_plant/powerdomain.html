@@ -1,0 +1,43 @@
+{% extends 'generic/object.html' %}
+{% load helpers %}
+
+{% block content %}
+  <div class="row">
+    <div class="col-md-8">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Domain Details</h2>
+        </div>
+        <div class="card-body">
+          <table class="table table-hover attr-table mb-0">
+            <tr><th>Power System</th><td>{{ object.power_system|linkify }}</td></tr>
+            <tr><th>Code</th><td>{{ object.code }}</td></tr>
+            <tr><th>Kind</th><td>{{ object.get_kind_display }}</td></tr>
+            <tr><th>Color</th><td>{{ object.color|default:'—' }}</td></tr>
+            <tr><th>Priority</th><td>{{ object.priority }}</td></tr>
+            <tr><th>Failure Isolation Depth</th><td>{{ object.failure_isolation_depth }}</td></tr>
+            <tr><th>Description</th><td>{{ object.description|default:'—' }}</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Redundancy Usage</h2>
+        </div>
+        <div class="card-body">
+          {% if object.redundancy_groups.all %}
+            <ul class="list-group list-group-flush">
+              {% for group in object.redundancy_groups.all %}
+                <li class="list-group-item px-0">{{ group|linkify }}</li>
+              {% empty %}
+                <li class="list-group-item px-0 text-secondary">No redundancy groups reference this domain.</li>
+              {% endfor %}
+            </ul>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}

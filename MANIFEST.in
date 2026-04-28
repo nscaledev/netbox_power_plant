@@ -1,0 +1,4 @@
+include README.md
+include LICENSE
+recursive-include netbox_power_plant/templates *
+recursive-include netbox_power_plant/static *

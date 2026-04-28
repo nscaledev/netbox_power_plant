@@ -1,0 +1,26 @@
+# NetBox dev runtime
+devrun/.env
+devrun/*.log
+devrun/.state/
+
+# General
+.DS_Store
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+deprecated_junk/
+
+# VS Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/*.code-snippets
+
+# Local history
+.history/

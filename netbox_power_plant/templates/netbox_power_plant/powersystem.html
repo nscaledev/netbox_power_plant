@@ -1,0 +1,85 @@
+{% extends 'generic/object.html' %}
+{% load helpers %}
+
+{% block content %}
+  <div class="row">
+    <div class="col-md-8">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">System Details</h2>
+        </div>
+        <div class="card-body">
+          <table class="table table-hover attr-table mb-0">
+            <tr><th>Site</th><td>{{ object.site|linkify }}</td></tr>
+            <tr><th>Location</th><td>{{ object.location|linkify|default:'—' }}</td></tr>
+            <tr><th>Scope Type</th><td>{{ object.get_scope_type_display }}</td></tr>
+            <tr><th>Supply Type</th><td>{{ object.get_upstream_supply_type_display }}</td></tr>
+            <tr><th>Nominal Voltage</th><td>{{ object.nominal_distribution_voltage|default:'—' }}</td></tr>
+            <tr><th>Frequency</th><td>{% if object.frequency_hz %}{{ object.frequency_hz }} Hz{% else %}—{% endif %}</td></tr>
+            <tr><th>Design State</th><td>{{ object.get_design_state_display }}</td></tr>
+            <tr><th>Template Derived</th><td>{{ object.is_template_derived|yesno:'Yes,No' }}</td></tr>
+            <tr><th>Description</th><td>{{ object.description|default:'—' }}</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card mb-3">
+        <div class="card-header">
+          <h2 class="card-title">Topology Scope</h2>
+        </div>
+        <div class="card-body">
+          <dl class="row mb-0">
+            <dt class="col-7">Domains</dt><dd class="col-5 text-end">{{ object.power_domains.count }}</dd>
+            <dt class="col-7">Redundancy Groups</dt><dd class="col-5 text-end">{{ object.redundancy_groups.count }}</dd>
+            <dt class="col-7">Modeled Delivery Points</dt><dd class="col-5 text-end">{{ object.rack_delivery_points.count }}</dd>
+          </dl>
+        </div>
+      </div>
+      <div class="card mb-3">
+        <div class="card-header">
+          <h2 class="card-title">Layout Health</h2>
+        </div>
+        <div class="card-body">
+          {% if not layout_health.is_available %}
+            <p class="text-secondary mb-2">Layout integration is unavailable in this environment.</p>
+            <p class="small text-secondary mb-0">{{ layout_health.availability_reason|default:'The floorplan plugin is not available.' }}</p>
+          {% elif layout_health.is_healthy %}
+            <p class="mb-2"><span class="badge text-bg-success">Healthy</span></p>
+            <dl class="row mb-0">
+              <dt class="col-7">Mapped Delivery</dt><dd class="col-5 text-end">{{ layout_health.mapped_delivery_count }}</dd>
+              <dt class="col-7">Findings</dt><dd class="col-5 text-end">0</dd>
+            </dl>
+          {% else %}
+            <p class="mb-2"><span class="badge text-bg-warning">Needs attention</span></p>
+            <dl class="row mb-3">
+              <dt class="col-8">Findings</dt><dd class="col-4 text-end">{{ layout_health.finding_count }}</dd>
+              <dt class="col-8">Unmapped Delivery</dt><dd class="col-4 text-end">{{ layout_health.unmapped_delivery_count }}</dd>
+              <dt class="col-8">Orphan Mappings</dt><dd class="col-4 text-end">{{ layout_health.orphan_mapped_asset_count }}</dd>
+              <dt class="col-8">Redundancy Gaps</dt><dd class="col-4 text-end">{{ layout_health.redundancy_gap_count }}</dd>
+            </dl>
+            <ul class="small text-secondary mb-0 ps-3">
+              {% for finding in layout_health.top_findings %}
+                <li>{{ finding.message }}</li>
+              {% endfor %}
+            </ul>
+          {% endif %}
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Layout Views</h2>
+        </div>
+        <div class="card-body">
+          <p class="text-secondary">Review layout posture and start controlled placement or delivery modeling from this power system scope.</p>
+          <div class="d-grid gap-2">
+            <a class="btn btn-primary" href="{{ workflow_urls.layout }}">Open Layout View</a>
+            <a class="btn btn-outline-primary" href="{{ workflow_urls.rack_delivery }}">Open Rack Delivery Summary</a>
+            {% if workflow_urls.placement_add %}<a class="btn btn-outline-secondary" href="{{ workflow_urls.placement_add }}">Add Facility Placement</a>{% endif %}
+            {% if workflow_urls.delivery_add %}<a class="btn btn-outline-secondary" href="{{ workflow_urls.delivery_add }}">Add Rack Delivery Point</a>{% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
