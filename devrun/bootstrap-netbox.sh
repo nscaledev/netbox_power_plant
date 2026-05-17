@@ -65,7 +65,6 @@ ensure_credentials() {
     local source_database_password=""
     local source_admin_password=""
     local source_secret_key=""
-    local source_api_token_pepper=""
 
     ensure_state_dir
     load_credentials
@@ -73,7 +72,6 @@ ensure_credentials() {
     source_database_password="$(read_source_credential NETBOX_DATABASE_PASSWORD || true)"
     source_admin_password="$(read_source_credential NETBOX_ADMIN_PASSWORD || true)"
     source_secret_key="$(read_source_credential NETBOX_SECRET_KEY || true)"
-    source_api_token_pepper="$(read_source_credential NETBOX_API_TOKEN_PEPPER || true)"
 
     if [ -z "${NETBOX_DATABASE_PASSWORD:-}" ]; then
         NETBOX_DATABASE_PASSWORD="${source_database_password:-$(generate_password)}"
@@ -95,18 +93,10 @@ PY
             NETBOX_SECRET_KEY="$(generate_secret)"
         fi
     fi
-    if ! is_safe_token "${NETBOX_API_TOKEN_PEPPER:-}" 64; then
-        if is_safe_token "$source_api_token_pepper" 64; then
-            NETBOX_API_TOKEN_PEPPER="$source_api_token_pepper"
-        else
-            NETBOX_API_TOKEN_PEPPER="$(generate_secret)"
-        fi
-    fi
 
     printf 'NETBOX_DATABASE_PASSWORD=%q\n' "$NETBOX_DATABASE_PASSWORD" > "$CREDENTIALS_FILE"
     printf 'NETBOX_ADMIN_PASSWORD=%q\n' "$NETBOX_ADMIN_PASSWORD" >> "$CREDENTIALS_FILE"
     printf 'NETBOX_SECRET_KEY=%q\n' "$NETBOX_SECRET_KEY" >> "$CREDENTIALS_FILE"
-    printf 'NETBOX_API_TOKEN_PEPPER=%q\n' "$NETBOX_API_TOKEN_PEPPER" >> "$CREDENTIALS_FILE"
     chmod 600 "$CREDENTIALS_FILE"
 }
 
@@ -183,9 +173,6 @@ REDIS = {
 }
 
 SECRET_KEY = '$NETBOX_SECRET_KEY'
-API_TOKEN_PEPPERS = {
-    1: '$NETBOX_API_TOKEN_PEPPER',
-}
 
 PLUGINS = ['netbox_power_plant'] if os.getenv('NETBOX_POWER_PLANT_ENABLE') == '1' else []
 

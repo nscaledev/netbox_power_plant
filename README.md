@@ -26,7 +26,7 @@ For the planned domain model and longer implementation direction, see
 
 ## Requirements
 
-- NetBox 4.5.0+
+- NetBox 4.2.x (4.2.0 – 4.2.99)
 - Python 3.12+
 
 ## Installation
@@ -50,7 +50,7 @@ PLUGINS = ['netbox_power_plant']
 
 Layout-aware features use the floorplan plugin package
 `netbox-floorplan-plugin`, exposed to NetBox as `netbox_floorplan`. In the
-current local baseline, `netbox_floorplan` is enabled in the pinned NetBox 4.5.7
+current local baseline, `netbox_floorplan` is enabled in the pinned NetBox 4.2.3
 configuration. `netbox_power_plant` still degrades cleanly when that plugin is
 missing or disabled: the electrical topology surfaces remain available, while
 floorplan-aware adapter results simply report no resolved floorplan context.

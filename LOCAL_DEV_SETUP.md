@@ -5,8 +5,8 @@ This project follows the same local dev pattern as `netbox_rpki` and
 
 ## Expected environment
 
-- NetBox source tree at `$HOME/src/netbox-v4.5.7/netbox`
-- Virtualenv at `$HOME/.virtualenvs/netbox-4.5.7`
+- NetBox source tree at `$HOME/src/netbox-v4.2.3/netbox`
+- Virtualenv at `$HOME/.virtualenvs/netbox-4.2.3`
 - Floorplan plugin checkout at `$HOME/src/netbox-floorplan-plugin` for
   layout-aware development
 - Docker for PostgreSQL and Redis
@@ -20,7 +20,7 @@ This project follows the same local dev pattern as `netbox_rpki` and
 
 ```bash
 cd ~/src/netbox_power_plant
-source ~/.virtualenvs/netbox-4.5.7/bin/activate
+source ~/.virtualenvs/netbox-4.2.3/bin/activate
 pip install -e ".[test]"
 pip install -e ~/src/netbox-floorplan-plugin
 ```
@@ -37,7 +37,7 @@ repo. Start that baseline runtime from the NetBox checkout before applying the
 floorplan plugin's migrations or static assets:
 
 ```bash
-cd ~/src/netbox-v4.5.7/netbox
+cd ~/src/netbox-v4.2.3/netbox
 ./devrun/dev.sh start
 ./devrun/dev.sh status
 ```
@@ -48,9 +48,9 @@ Once those baseline services are up, apply the floorplan plugin's migrations
 and static assets from the NetBox checkout:
 
 ```bash
-cd ~/src/netbox-v4.5.7/netbox
-~/.virtualenvs/netbox-4.5.7/bin/python manage.py migrate netbox_floorplan
-~/.virtualenvs/netbox-4.5.7/bin/python manage.py collectstatic --noinput
+cd ~/src/netbox-v4.2.3/netbox
+~/.virtualenvs/netbox-4.2.3/bin/python manage.py migrate netbox_floorplan
+~/.virtualenvs/netbox-4.2.3/bin/python manage.py collectstatic --noinput
 ```
 
 Use `./devrun/dev.sh stop` from the baseline checkout when you want to tear

@@ -17,8 +17,8 @@ class PowerPlantConfig(PluginConfig):
     author = 'Mencken Davidson'
     author_email = 'mencken@gmail.com'
     base_url = 'power-plant'
-    min_version = '4.5.0'
-    max_version = '4.5.99'
+    min_version = '4.2.0'
+    max_version = '4.2.99'
     required_settings = []
     default_settings = {
         'top_level_menu': True,

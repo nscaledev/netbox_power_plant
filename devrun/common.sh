@@ -2,7 +2,7 @@
 set -euo pipefail
 
 DEVRUN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-NETBOX_RELEASE="${NETBOX_RELEASE:-4.5.7}"
+NETBOX_RELEASE="${NETBOX_RELEASE:-4.2.3}"
 NETBOX_SRC="${NETBOX_SRC:-$HOME/src/netbox-v${NETBOX_RELEASE}}"
 NETBOX_PROJECT_DIR="${NETBOX_PROJECT_DIR:-$NETBOX_SRC/netbox}"
 VENV_DIR="${VENV_DIR:-$HOME/.virtualenvs/netbox-${NETBOX_RELEASE}}"

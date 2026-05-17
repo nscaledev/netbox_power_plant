@@ -15,7 +15,7 @@ Layout-aware development also assumes the floorplan plugin package
 enabled in NetBox as `netbox_floorplan`.
 
 In the standard workspace layout, the baseline NetBox checkout at
-`~/src/netbox-v4.5.7/netbox` uses its own `./devrun/dev.sh` wrapper with
+`~/src/netbox-v4.2.3/netbox` uses its own `./devrun/dev.sh` wrapper with
 PostgreSQL on `5435` and Redis on `6382`; bring that baseline runtime up before
 running floorplan-related management commands there.
 
@@ -29,21 +29,21 @@ In the standard local workspace layout from `LOCAL_DEV_SETUP.md`, NetBox's
 management entry point lives at:
 
 ```bash
-~/src/netbox-v4.5.7/netbox/manage.py
+~/src/netbox-v4.2.3/netbox/manage.py
 ```
 
 Use the pinned NetBox virtualenv and the plugin's test configuration when
 generating plugin migrations:
 
 ```bash
-~/.virtualenvs/netbox-4.5.7/bin/python \
-    ~/src/netbox-v4.5.7/netbox/manage.py \
+~/.virtualenvs/netbox-4.2.3/bin/python \
+    ~/src/netbox-v4.2.3/netbox/manage.py \
     makemigrations netbox_power_plant \
     --settings=netbox_power_plant.tests.netbox_configuration
 ```
 
 If your local checkout or virtualenv uses a different pinned NetBox version,
-adjust the `netbox-v4.5.7` and `netbox-4.5.7` path segments accordingly.
+adjust the `netbox-v4.2.3` and `netbox-4.2.3` path segments accordingly.
 
 ### Test Lane Expectations
 
