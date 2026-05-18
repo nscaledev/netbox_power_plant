@@ -1,7 +1,19 @@
 from django import forms
 
 from dcim.models import Device, Location, Rack, Site
-from netbox.forms import OrganizationalModelFilterSetForm, OrganizationalModelForm
+try:
+    from netbox.forms import OrganizationalModelFilterSetForm, OrganizationalModelForm
+except ImportError:
+    from netbox.forms import NetBoxModelFilterSetForm, NetBoxModelForm
+
+    class OrganizationalModelForm(NetBoxModelForm):
+        comments = forms.CharField(
+            required=False,
+            widget=forms.Textarea,
+            help_text='Compatibility-only field for NetBox releases before OrganizationalModel comments.',
+        )
+
+    OrganizationalModelFilterSetForm = NetBoxModelFilterSetForm
 from utilities.forms.fields import DynamicModelChoiceField, DynamicModelMultipleChoiceField
 from utilities.forms.rendering import FieldSet
 

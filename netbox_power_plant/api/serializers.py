@@ -1,8 +1,18 @@
 from dcim.models import Device, Location, Rack, Site
+from rest_framework import serializers
 from rest_framework.serializers import ValidationError
 
 from netbox.api.fields import ChoiceField, SerializedPKRelatedField
-from netbox.api.serializers import OrganizationalModelSerializer, WritableNestedSerializer
+try:
+    from netbox.api.serializers import OrganizationalModelSerializer, WritableNestedSerializer
+except ImportError:
+    from netbox.api.serializers import NetBoxModelSerializer, WritableNestedSerializer
+
+    class OrganizationalModelSerializer(NetBoxModelSerializer):
+        comments = serializers.SerializerMethodField()
+
+        def get_comments(self, obj):
+            return getattr(obj, 'comments', '')
 
 from netbox_power_plant.choices import (
     DesignStateChoices,

@@ -1,6 +1,6 @@
 import django_tables2 as tables
 from django.utils.html import format_html, format_html_join
-from netbox.tables import OrganizationalModelTable, columns
+from netbox.tables import NetBoxTable, columns
 from netbox.tables.columns import ActionsColumn
 
 from .models import (
@@ -14,6 +14,13 @@ from .models import (
     RedundancyGroup,
 )
 from .services.workflow_urls import build_delivery_add_url, build_delivery_edit_url
+
+
+class OrganizationalModelTable(NetBoxTable):
+    comments = tables.Column(empty_values=(), orderable=False)
+
+    def render_comments(self, record):
+        return getattr(record, 'comments', '')
 
 
 class PowerSystemTable(OrganizationalModelTable):
