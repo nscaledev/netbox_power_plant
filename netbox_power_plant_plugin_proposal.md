@@ -7,8 +7,8 @@ This plugin extends NetBox so it can model the **facility-side electrical design
 
 The implementation is intentionally split into two cooperating layers:
 
-- **Core NetBox remains the system of record for** sites, locations, racks, devices, modules, power ports, power outlets, power feeds, and physical cabling at the IT/device boundary.
-- **The plugin owns** the upstream electrical graph: utility service, generators, switchgear, transformers, UPS plants, battery systems, ATS/STS, busway, PDUs/RPPs/panelboards, rack circuits, redundancy domains, protection, capacity, and bulk-instantiation workflows.
+- **Core NetBox remains the system of record for** sites, locations, racks, devices, modules, and the power-port construct that belongs to devices and modules.
+- **The plugin owns** the electrical graph and power-distribution substitutes for NetBox-native power panels, power feeds, power outlets, and power cabling: utility service, generators, switchgear, transformers, UPS plants, battery systems, ATS/STS, busway, PDUs/RPPs/panelboards, rack circuits, internal rack buses, redundancy domains, protection, capacity, and bulk-instantiation workflows.
 
 The plugin must satisfy two goals:
 
@@ -91,18 +91,16 @@ Every object should be understandable along three axes:
 
 This separation is what makes templating and repeated instantiation workable.
 
-### 4.3 Use core NetBox as the rack/device boundary
+### 4.3 Use core NetBox power ports as the rack/device boundary
 
 The plugin should not re-implement:
 
 - devices
 - racks
 - power ports
-- power outlets
-- power feeds
 - cables
 
-Instead, it should introduce explicit **boundary models** that map plugin electrical objects onto those native NetBox objects.
+The plugin should re-implement power panels, power feeds, power outlets, and power cabling as plugin-owned electrical nodes, terminals, segments, rack delivery points, and internal bus attachments. The only native NetBox power construct at the boundary is `dcim.PowerPort`.
 
 ### 4.4 Keep heavy logic out of forms and views
 
@@ -579,41 +577,20 @@ Key fields:
 - `input_terminal` FK to `ElectricalTerminal`
 - `expected_feed_count`
 
-### `NetBoxPowerFeedBinding`
+### `PowerPortDelivery`
 
-Maps plugin rack/facility delivery to NetBox `dcim.PowerFeed`.
-
-Key fields:
-
-- `rack_delivery_point` FK
-- `power_feed` FK to NetBox model
-- `binding_role` (`primary`, `redundant`, `maintenance`, `aux`)
-- `is_authoritative_from_plugin`
-
-### `NetBoxPowerPortBinding`
-
-Maps a plugin boundary object to a device/module power port.
+Maps a plugin boundary object directly to a device/module power port.
 
 Key fields:
 
-- `rack_delivery_point` or `segment` FK
-- `power_port` FK to NetBox model
+- `rack_delivery_point` FK or equivalent plugin-owned boundary object
+- `power_port` FK to native NetBox `dcim.PowerPort`
 - `binding_path_role`
 - `priority`
 
-### `NetBoxPowerOutletBinding`
-
-Maps plugin-side rack PDU / downstream panel outlet abstraction to NetBox `PowerOutlet`.
-
-Key fields:
-
-- `source_terminal` or `source_node` FK
-- `power_outlet` FK to NetBox model
-- `branch_circuit_label`
-
 Design note:
 
-- These bindings should be optional in early modeling phases and become required only when a design moves toward detailed rack/device realization.
+- Device power ports are the single native handoff. Panel/feed/outlet behavior stays in the plugin graph so operators can replace NetBox-native power constructs without splitting authority.
 
 ---
 
@@ -975,10 +952,10 @@ Capabilities:
 Per rack:
 
 - plugin-side delivery points
-- bound NetBox power feeds
-- bound rack PDUs / ports / outlets
+- native NetBox power-port handoffs
+- plugin-owned rack PDUs / terminals / internal bus attachments
 - A/B path status
-- unresolved bindings
+- unresolved power-port attachments
 
 ### Template Wizard
 
@@ -1175,10 +1152,7 @@ Use native NetBox models for:
 - `Rack`
 - `Device`
 - `Module`
-- `PowerFeed`
 - `PowerPort`
-- `PowerOutlet`
-- `Cable`
 
 ## 14.2 What the plugin adds
 
@@ -1355,7 +1329,7 @@ Focus on:
 
 - template dry-run and apply
 - bulk import
-- binding to native NetBox power objects
+- plugin-owned power paths terminating on native NetBox power ports
 - delete protection / cascade behavior
 - permission boundaries
 
@@ -1427,8 +1401,8 @@ Implement in this order:
 6. `ElectricalSegment`
 7. `ProtectionElement`
 8. `RackDeliveryPoint`
-9. `NetBoxPowerFeedBinding`
-10. `NetBoxPowerPortBinding`
+9. `InternalPowerBus`
+10. `InternalPowerBusAttachment`
 11. `PowerArchitectureTemplate`
 12. `TemplateNode`
 13. `TemplateTerminal`

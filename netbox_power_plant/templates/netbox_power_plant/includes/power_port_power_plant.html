@@ -1,0 +1,42 @@
+{% load helpers %}
+
+<div class="card">
+  <div class="card-header">
+    <h2 class="card-title">Power Plant</h2>
+  </div>
+  <div class="card-body">
+    {% if has_power_plant_paths %}
+      {% if delivery_points %}
+        <h3 class="h5">Delivery Points</h3>
+        <ul class="list-unstyled mb-3">
+          {% for delivery_point in delivery_points %}
+            <li class="mb-2">
+              {{ delivery_point|linkify }}
+              <div class="small text-secondary">
+                {{ delivery_point.power_system|linkify }}
+                {% if delivery_point.electrical_terminal %} / {{ delivery_point.electrical_terminal|linkify }}{% elif delivery_point.electrical_node %} / {{ delivery_point.electrical_node|linkify }}{% endif %}
+              </div>
+            </li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+      {% if bus_attachments %}
+        <h3 class="h5">Bus Attachments</h3>
+        <ul class="list-unstyled mb-0">
+          {% for attachment in bus_attachments %}
+            <li class="mb-2">
+              {{ attachment|linkify }}
+              <div class="small text-secondary">
+                {{ attachment.internal_power_bus|linkify }} / {{ attachment.get_attachment_role_display }}
+              </div>
+            </li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    {% else %}
+      <p class="text-secondary mb-0">
+        This power port is not yet attached to a Power Plant delivery point or internal power bus.
+      </p>
+    {% endif %}
+  </div>
+</div>

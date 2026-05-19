@@ -10,6 +10,8 @@ from .models import (
     ElectricalNodePlacement,
     ElectricalSegment,
     ElectricalTerminal,
+    InternalPowerBus,
+    InternalPowerBusAttachment,
     PowerDomain,
     PowerSystem,
     RackDeliveryPoint,
@@ -285,7 +287,8 @@ class ElectricalSegmentDeleteView(generic.ObjectDeleteView):
 
 class RackDeliveryPointListView(generic.ObjectListView):
     queryset = RackDeliveryPoint.objects.select_related(
-        'power_system', 'electrical_node', 'electrical_terminal', 'rack', 'device', 'expected_redundancy_group'
+        'power_system', 'electrical_node', 'electrical_terminal', 'rack', 'device', 'power_port', 'power_port__device',
+        'expected_redundancy_group'
     )
     filterset = filtersets.RackDeliveryPointFilterSet
     filterset_form = forms.RackDeliveryPointFilterForm
@@ -294,7 +297,8 @@ class RackDeliveryPointListView(generic.ObjectListView):
 
 class RackDeliveryPointView(generic.ObjectView):
     queryset = RackDeliveryPoint.objects.select_related(
-        'power_system', 'electrical_node', 'electrical_terminal', 'rack', 'device', 'expected_redundancy_group'
+        'power_system', 'electrical_node', 'electrical_terminal', 'rack', 'device', 'power_port', 'power_port__device',
+        'expected_redundancy_group'
     )
     template_name = 'netbox_power_plant/rackdeliverypoint.html'
 
@@ -306,6 +310,56 @@ class RackDeliveryPointEditView(generic.ObjectEditView):
 
 class RackDeliveryPointDeleteView(generic.ObjectDeleteView):
     queryset = RackDeliveryPoint.objects.all()
+
+
+class InternalPowerBusListView(generic.ObjectListView):
+    queryset = InternalPowerBus.objects.select_related('power_system', 'rack')
+    filterset = filtersets.InternalPowerBusFilterSet
+    filterset_form = forms.InternalPowerBusFilterForm
+    table = tables.InternalPowerBusTable
+
+
+class InternalPowerBusView(generic.ObjectView):
+    queryset = InternalPowerBus.objects.select_related('power_system', 'rack').prefetch_related(
+        'attachments__power_port__device'
+    )
+    template_name = 'netbox_power_plant/internalpowerbus.html'
+
+
+class InternalPowerBusEditView(generic.ObjectEditView):
+    queryset = InternalPowerBus.objects.all()
+    form = forms.InternalPowerBusForm
+
+
+class InternalPowerBusDeleteView(generic.ObjectDeleteView):
+    queryset = InternalPowerBus.objects.all()
+
+
+class InternalPowerBusAttachmentListView(generic.ObjectListView):
+    queryset = InternalPowerBusAttachment.objects.select_related(
+        'internal_power_bus', 'internal_power_bus__power_system', 'internal_power_bus__rack',
+        'power_port', 'power_port__device',
+    )
+    filterset = filtersets.InternalPowerBusAttachmentFilterSet
+    filterset_form = forms.InternalPowerBusAttachmentFilterForm
+    table = tables.InternalPowerBusAttachmentTable
+
+
+class InternalPowerBusAttachmentView(generic.ObjectView):
+    queryset = InternalPowerBusAttachment.objects.select_related(
+        'internal_power_bus', 'internal_power_bus__power_system', 'internal_power_bus__rack',
+        'power_port', 'power_port__device',
+    )
+    template_name = 'netbox_power_plant/internalpowerbusattachment.html'
+
+
+class InternalPowerBusAttachmentEditView(generic.ObjectEditView):
+    queryset = InternalPowerBusAttachment.objects.all()
+    form = forms.InternalPowerBusAttachmentForm
+
+
+class InternalPowerBusAttachmentDeleteView(generic.ObjectDeleteView):
+    queryset = InternalPowerBusAttachment.objects.all()
 
 
 class ElectricalNodePlacementListView(generic.ObjectListView):

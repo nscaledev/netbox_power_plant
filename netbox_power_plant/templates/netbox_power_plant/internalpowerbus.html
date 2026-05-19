@@ -1,0 +1,49 @@
+{% extends 'generic/object.html' %}
+{% load helpers %}
+
+{% block content %}
+  <div class="row">
+    <div class="col-md-8">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Internal Power Bus Details</h2>
+        </div>
+        <div class="card-body">
+          <table class="table table-hover attr-table mb-0">
+            <tr><th>Power System</th><td>{{ object.power_system|linkify }}</td></tr>
+            <tr><th>Rack</th><td>{{ object.rack|linkify }}</td></tr>
+            <tr><th>Bus Role</th><td>{{ object.get_bus_role_display }}</td></tr>
+            <tr><th>Supply Type</th><td>{{ object.get_supply_type_display }}</td></tr>
+            <tr><th>Nominal Voltage</th><td>{{ object.nominal_voltage|default:'—' }}</td></tr>
+            <tr><th>Design State</th><td>{{ object.get_design_state_display }}</td></tr>
+            <tr><th>Description</th><td>{{ object.description|default:'—' }}</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Power Port Attachments</h2>
+        </div>
+        <div class="card-body">
+          <dl class="row mb-3">
+            <dt class="col-7">Attachments</dt><dd class="col-5 text-end">{{ object.attachments.count }}</dd>
+          </dl>
+          {% if object.attachments.exists %}
+            <ul class="list-unstyled mb-0">
+              {% for attachment in object.attachments.all %}
+                <li class="mb-2">
+                  {{ attachment.power_port|linkify }}
+                  <div class="small text-secondary">{{ attachment.get_attachment_role_display }} / {{ attachment.power_port.device|linkify }}</div>
+                </li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <p class="text-secondary mb-0">No power ports are attached to this bus.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}

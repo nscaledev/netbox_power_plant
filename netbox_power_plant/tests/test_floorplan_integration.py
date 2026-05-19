@@ -128,6 +128,8 @@ class FloorplanIntegrationTestCase(SimpleTestCase):
 
         with patch('netbox_power_plant.services.floorplan.import_module', return_value=floorplan_module):
             context = get_floorplan_context_for_power_system(self.power_system)
+            mapped_racks = list_mapped_racks(self.power_system)
+            mapped_devices = list_mapped_devices(self.power_system)
 
         self.assertTrue(context.availability.is_available)
         self.assertTrue(context.has_floorplan)
@@ -142,8 +144,8 @@ class FloorplanIntegrationTestCase(SimpleTestCase):
         self.assertEqual(context.mapped_racks[0].object_name, 'Rack-A1')
         self.assertEqual(context.mapped_devices[0].object_id, 7001)
         self.assertEqual(context.mapped_devices[0].x, 22.0)
-        self.assertEqual(list_mapped_racks(self.power_system)[0].object_id, 5001)
-        self.assertEqual(list_mapped_devices(self.power_system)[0].object_id, 7001)
+        self.assertEqual(mapped_racks[0].object_id, 5001)
+        self.assertEqual(mapped_devices[0].object_id, 7001)
 
     @override_settings(PLUGINS=['netbox_floorplan', 'netbox_power_plant'])
     def test_falls_back_to_site_floorplan_when_location_floorplan_is_missing(self):

@@ -1,0 +1,40 @@
+{% extends 'generic/object.html' %}
+{% load helpers %}
+
+{% block content %}
+  <div class="row">
+    <div class="col-md-8">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Bus Attachment Details</h2>
+        </div>
+        <div class="card-body">
+          <table class="table table-hover attr-table mb-0">
+            <tr><th>Internal Power Bus</th><td>{{ object.internal_power_bus|linkify }}</td></tr>
+            <tr><th>Power System</th><td>{{ object.internal_power_bus.power_system|linkify }}</td></tr>
+            <tr><th>Rack</th><td>{{ object.internal_power_bus.rack|linkify }}</td></tr>
+            <tr><th>Power Port</th><td>{{ object.power_port|linkify }}</td></tr>
+            <tr><th>Device</th><td>{{ object.power_port.device|linkify }}</td></tr>
+            <tr><th>Attachment Role</th><td>{{ object.get_attachment_role_display }}</td></tr>
+            <tr><th>Position Index</th><td>{{ object.position_index|default:'—' }}</td></tr>
+            <tr><th>Design State</th><td>{{ object.get_design_state_display }}</td></tr>
+            <tr><th>Description</th><td>{{ object.description|default:'—' }}</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Native Boundary</h2>
+        </div>
+        <div class="card-body">
+          <p class="text-secondary mb-0">
+            This attachment terminates on a standard NetBox device power port. No native NetBox power outlet,
+            power feed, or power panel is required for this modeled path.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}

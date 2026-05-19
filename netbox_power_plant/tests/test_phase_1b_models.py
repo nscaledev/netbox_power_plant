@@ -1,9 +1,10 @@
 from django.core.exceptions import ValidationError
 from django.test import TestCase
 
-from dcim.models import Device, DeviceRole, DeviceType, Location, Manufacturer, Rack, Site
+from dcim.models import Device, DeviceRole, DeviceType, Location, Manufacturer, PowerPort, Rack, Site
 
 from netbox_power_plant.choices import (
+    InternalPowerBusAttachmentRoleChoices,
     NodeKindChoices,
     PhaseModeChoices,
     SegmentKindChoices,
@@ -14,6 +15,8 @@ from netbox_power_plant.models import (
     ElectricalNode,
     ElectricalSegment,
     ElectricalTerminal,
+    InternalPowerBus,
+    InternalPowerBusAttachment,
     PowerDomain,
     PowerSystem,
     RackDeliveryPoint,
@@ -64,6 +67,22 @@ class Phase1BModelTestCase(TestCase):
         cls.manufacturer = Manufacturer.objects.create(name='Test Manufacturer', slug='test-manufacturer')
         cls.device_type = DeviceType.objects.create(model='Boundary Device', slug='boundary-device', manufacturer=cls.manufacturer)
         cls.device_role = DeviceRole.objects.create(name='Boundary Role', slug='boundary-role', color='ff0000')
+        cls.device = Device.objects.create(
+            name='Boundary Device A',
+            device_type=cls.device_type,
+            role=cls.device_role,
+            site=cls.site,
+            location=cls.location,
+        )
+        cls.power_port = PowerPort.objects.create(device=cls.device, name='PSU A')
+        cls.other_location_device = Device.objects.create(
+            name='Boundary Device B',
+            device_type=cls.device_type,
+            role=cls.device_role,
+            site=cls.site,
+            location=cls.other_location_same_site,
+        )
+        cls.other_location_power_port = PowerPort.objects.create(device=cls.other_location_device, name='PSU A')
 
     def test_node_rejects_parent_from_another_power_system(self):
         parent_node = ElectricalNode.objects.create(
@@ -194,7 +213,77 @@ class Phase1BModelTestCase(TestCase):
 
         segment.full_clean()
 
-    def test_rack_delivery_point_rejects_both_rack_and_device_targets(self):
+    def test_internal_power_bus_attachment_accepts_matching_load_port(self):
+        bus = InternalPowerBus.objects.create(
+            name='Rack A1 NVL72 Busbar',
+            slug='rack-a1-nvl72-busbar',
+            power_system=self.power_system,
+            rack=self.rack,
+        )
+        rack_device = Device.objects.create(
+            name='Rack A1 Load Device',
+            device_type=self.device_type,
+            role=self.device_role,
+            site=self.site,
+            location=self.location,
+            rack=self.rack,
+        )
+        load_port = PowerPort.objects.create(device=rack_device, name='nvl72-busbar', type='nvl72-busbar')
+        attachment = InternalPowerBusAttachment(
+            name='Rack A1 Load Attachment',
+            slug='rack-a1-load-attachment',
+            internal_power_bus=bus,
+            power_port=load_port,
+            attachment_role=InternalPowerBusAttachmentRoleChoices.ROLE_LOAD,
+        )
+
+        attachment.full_clean()
+
+    def test_internal_power_bus_attachment_accepts_standard_power_port_type(self):
+        bus = InternalPowerBus.objects.create(
+            name='Rack A1 Standard Port Busbar',
+            slug='rack-a1-standard-port-busbar',
+            power_system=self.power_system,
+            rack=self.rack,
+        )
+        rack_device = Device.objects.create(
+            name='Rack A1 Standard Load Device',
+            device_type=self.device_type,
+            role=self.device_role,
+            site=self.site,
+            location=self.location,
+            rack=self.rack,
+        )
+        load_port = PowerPort.objects.create(device=rack_device, name='PSU A', type='iec-60320-c14')
+        attachment = InternalPowerBusAttachment(
+            name='Rack A1 Standard Load Attachment',
+            slug='rack-a1-standard-load-attachment',
+            internal_power_bus=bus,
+            power_port=load_port,
+            attachment_role=InternalPowerBusAttachmentRoleChoices.ROLE_LOAD,
+        )
+
+        attachment.full_clean()
+
+    def test_internal_power_bus_attachment_rejects_power_port_outside_bus_rack(self):
+        bus = InternalPowerBus.objects.create(
+            name='Rack A1 Scope Busbar',
+            slug='rack-a1-scope-busbar',
+            power_system=self.power_system,
+            rack=self.rack,
+        )
+        attachment = InternalPowerBusAttachment(
+            name='Rack A1 Wrong Rack Attachment',
+            slug='rack-a1-wrong-rack-attachment',
+            internal_power_bus=bus,
+            power_port=self.other_location_power_port,
+            attachment_role=InternalPowerBusAttachmentRoleChoices.ROLE_LOAD,
+        )
+
+        with self.assertRaises(ValidationError):
+            attachment.full_clean()
+
+    def test_rack_delivery_point_rejects_multiple_targets(self):
         node = ElectricalNode.objects.create(
             name='Rack Boundary Node',
             slug='rack-boundary-node',
@@ -225,6 +314,7 @@ class Phase1BModelTestCase(TestCase):
             electrical_terminal=terminal,
             rack=self.rack,
             device=device,
+            power_port=self.power_port,
         )
 
         with self.assertRaises(ValidationError):
@@ -286,6 +376,26 @@ class Phase1BModelTestCase(TestCase):
         with self.assertRaises(ValidationError):
             point.full_clean()
 
+    def test_rack_delivery_point_rejects_power_port_outside_power_system_location(self):
+        node = ElectricalNode.objects.create(
+            name='Rack Boundary Node Power Port Location',
+            slug='rack-boundary-node-power-port-location',
+            power_system=self.power_system,
+            site=self.site,
+            location=self.location,
+            node_kind=NodeKindChoices.KIND_RACK_CIRCUIT_TERMINATOR,
+        )
+        point = RackDeliveryPoint(
+            name='Power Port Wrong Location Delivery',
+            slug='power-port-wrong-location-delivery',
+            power_system=self.power_system,
+            electrical_node=node,
+            power_port=self.other_location_power_port,
+        )
+
+        with self.assertRaises(ValidationError):
+            point.full_clean()
+
     def test_rack_delivery_point_accepts_matching_terminal_and_rack(self):
         node = ElectricalNode.objects.create(
             name='Rack Boundary Node Valid',
@@ -309,6 +419,34 @@ class Phase1BModelTestCase(TestCase):
             electrical_node=node,
             electrical_terminal=terminal,
             rack=self.rack,
+            feed_label='A-feed',
+        )
+
+        point.full_clean()
+
+    def test_rack_delivery_point_accepts_matching_power_port(self):
+        node = ElectricalNode.objects.create(
+            name='Rack Boundary Node Power Port Valid',
+            slug='rack-boundary-node-power-port-valid',
+            power_system=self.power_system,
+            site=self.site,
+            location=self.location,
+            node_kind=NodeKindChoices.KIND_RACK_CIRCUIT_TERMINATOR,
+        )
+        terminal = ElectricalTerminal.objects.create(
+            name='Rack Input Power Port Valid',
+            slug='rack-input-power-port-valid',
+            node=node,
+            direction=TerminalDirectionChoices.DIRECTION_SINK,
+            supply_type=SupplyTypeChoices.SUPPLY_AC,
+        )
+        point = RackDeliveryPoint(
+            name='Power Port Valid Delivery',
+            slug='power-port-valid-delivery',
+            power_system=self.power_system,
+            electrical_node=node,
+            electrical_terminal=terminal,
+            power_port=self.power_port,
             feed_label='A-feed',
         )
 

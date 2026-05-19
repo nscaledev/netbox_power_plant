@@ -15,6 +15,7 @@
             <tr><th>Electrical Terminal</th><td>{{ object.electrical_terminal|linkify|default:'—' }}</td></tr>
             <tr><th>Rack</th><td>{{ object.rack|linkify|default:'—' }}</td></tr>
             <tr><th>Device</th><td>{{ object.device|linkify|default:'—' }}</td></tr>
+            <tr><th>Power Port</th><td>{{ object.power_port|linkify|default:'—' }}</td></tr>
             <tr><th>Expected Redundancy Group</th><td>{{ object.expected_redundancy_group|linkify|default:'—' }}</td></tr>
             <tr><th>Delivery Role</th><td>{{ object.delivery_role|default:'—' }}</td></tr>
             <tr><th>Feed Label</th><td>{{ object.feed_label|default:'—' }}</td></tr>
@@ -31,7 +32,7 @@
         </div>
         <div class="card-body">
           <dl class="row mb-0">
-            <dt class="col-7">Target Type</dt><dd class="col-5 text-end">{% if object.rack %}Rack{% elif object.device %}Device{% else %}—{% endif %}</dd>
+            <dt class="col-7">Target Type</dt><dd class="col-5 text-end">{% if object.rack %}Rack{% elif object.device %}Device{% elif object.power_port %}Power Port{% else %}—{% endif %}</dd>
             <dt class="col-7">Graph Anchor</dt><dd class="col-5 text-end">{% if object.electrical_terminal %}Terminal{% elif object.electrical_node %}Node{% else %}—{% endif %}</dd>
           </dl>
         </div>

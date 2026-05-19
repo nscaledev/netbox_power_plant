@@ -33,6 +33,32 @@ class SupplyTypeChoices(ChoiceSet):
     ]
 
 
+class InternalPowerBusRoleChoices(ChoiceSet):
+    key = 'InternalPowerBus.bus_role'
+
+    ROLE_BUSBAR = 'busbar'
+    ROLE_BACKPLANE = 'backplane'
+    ROLE_CUSTOM = 'custom'
+
+    CHOICES = [
+        (ROLE_BUSBAR, 'Busbar'),
+        (ROLE_BACKPLANE, 'Backplane'),
+        (ROLE_CUSTOM, 'Custom'),
+    ]
+
+
+class InternalPowerBusAttachmentRoleChoices(ChoiceSet):
+    key = 'InternalPowerBusAttachment.attachment_role'
+
+    ROLE_SOURCE = 'source'
+    ROLE_LOAD = 'load'
+
+    CHOICES = [
+        (ROLE_SOURCE, 'Source'),
+        (ROLE_LOAD, 'Load'),
+    ]
+
+
 class DesignStateChoices(ChoiceSet):
     key = 'PowerPlant.design_state'
 

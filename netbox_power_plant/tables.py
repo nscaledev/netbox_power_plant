@@ -8,6 +8,8 @@ from .models import (
     ElectricalNodePlacement,
     ElectricalSegment,
     ElectricalTerminal,
+    InternalPowerBus,
+    InternalPowerBusAttachment,
     PowerDomain,
     PowerSystem,
     RackDeliveryPoint,
@@ -18,6 +20,7 @@ from .services.workflow_urls import build_delivery_add_url, build_delivery_edit_
 
 class OrganizationalModelTable(NetBoxTable):
     comments = tables.Column(empty_values=(), orderable=False)
+    actions = ActionsColumn(actions=('edit', 'delete'))
 
     def render_comments(self, record):
         return getattr(record, 'comments', '')
@@ -162,17 +165,18 @@ class RackDeliveryPointTable(OrganizationalModelTable):
     electrical_terminal = tables.Column(linkify=True)
     rack = tables.Column(linkify=True)
     device = tables.Column(linkify=True)
+    power_port = tables.Column(linkify=True)
     expected_redundancy_group = tables.Column(linkify=True)
 
     class Meta(OrganizationalModelTable.Meta):
         model = RackDeliveryPoint
         fields = (
-            'pk', 'id', 'name', 'power_system', 'electrical_node', 'electrical_terminal', 'rack', 'device',
+            'pk', 'id', 'name', 'power_system', 'electrical_node', 'electrical_terminal', 'rack', 'device', 'power_port',
             'expected_redundancy_group', 'delivery_role', 'feed_label', 'design_state', 'description', 'comments',
             'tags', 'created', 'last_updated', 'actions',
         )
         default_columns = (
-            'pk', 'name', 'power_system', 'electrical_node', 'electrical_terminal', 'rack', 'device',
+            'pk', 'name', 'power_system', 'electrical_node', 'electrical_terminal', 'rack', 'device', 'power_port',
             'expected_redundancy_group', 'feed_label', 'design_state',
         )
 
@@ -270,10 +274,48 @@ class RackDeliverySummaryTable(tables.Table):
         return 'Compliant' if record.is_redundancy_compliant else 'Needs attention'
 
     def _describe_delivery_point(self, delivery_point):
-        target = delivery_point.rack or delivery_point.device
+        target = delivery_point.rack or delivery_point.device or delivery_point.power_port
         parts = [delivery_point.feed_label or delivery_point.name]
         if target is not None:
             parts.append(str(target))
         if delivery_point.expected_redundancy_group is not None:
             parts.append(f'expected {delivery_point.expected_redundancy_group.name}')
         return ' / '.join(parts)
+
+
+class InternalPowerBusTable(OrganizationalModelTable):
+    name = tables.Column(linkify=True)
+    power_system = tables.Column(linkify=True)
+    rack = tables.Column(linkify=True)
+
+    class Meta(OrganizationalModelTable.Meta):
+        model = InternalPowerBus
+        fields = (
+            'pk', 'id', 'name', 'power_system', 'rack', 'bus_role', 'supply_type', 'nominal_voltage',
+            'design_state', 'description', 'comments', 'tags', 'created', 'last_updated', 'actions',
+        )
+        default_columns = (
+            'pk', 'name', 'power_system', 'rack', 'bus_role', 'supply_type', 'nominal_voltage', 'design_state',
+        )
+
+
+class InternalPowerBusAttachmentTable(OrganizationalModelTable):
+    name = tables.Column(linkify=True)
+    internal_power_bus = tables.Column(linkify=True)
+    power_port = tables.Column(linkify=True)
+    power_port_device = tables.Column(empty_values=(), verbose_name='Device', linkify=True)
+
+    class Meta(OrganizationalModelTable.Meta):
+        model = InternalPowerBusAttachment
+        fields = (
+            'pk', 'id', 'name', 'internal_power_bus', 'power_port', 'power_port_device', 'attachment_role',
+            'position_index', 'design_state', 'description', 'comments', 'tags', 'created', 'last_updated',
+            'actions',
+        )
+        default_columns = (
+            'pk', 'name', 'internal_power_bus', 'power_port', 'power_port_device', 'attachment_role',
+            'position_index', 'design_state',
+        )
+
+    def render_power_port_device(self, record):
+        return record.power_port.device

@@ -1,6 +1,6 @@
 import django_filters
 
-from dcim.models import Device, Location, Rack, Site
+from dcim.models import Device, Location, PowerPort, Rack, Site
 from netbox.filtersets import OrganizationalModelFilterSet
 
 from .models import (
@@ -8,6 +8,8 @@ from .models import (
     ElectricalNodePlacement,
     ElectricalSegment,
     ElectricalTerminal,
+    InternalPowerBus,
+    InternalPowerBusAttachment,
     PowerDomain,
     PowerSystem,
     RackDeliveryPoint,
@@ -161,12 +163,69 @@ class RackDeliveryPointFilterSet(OrganizationalModelFilterSet):
         queryset=Device.objects.all(),
         label='Device',
     )
+    power_port_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='power_port',
+        queryset=PowerPort.objects.all(),
+        label='Power port',
+    )
 
     class Meta:
         model = RackDeliveryPoint
         fields = (
             'id', 'name', 'slug', 'power_system_id', 'expected_redundancy_group_id', 'electrical_node_id',
-            'electrical_terminal_id', 'rack_id', 'device_id', 'delivery_role', 'feed_label', 'design_state',
+            'electrical_terminal_id', 'rack_id', 'device_id', 'power_port_id', 'delivery_role', 'feed_label', 'design_state',
+        )
+
+
+class InternalPowerBusFilterSet(OrganizationalModelFilterSet):
+    power_system_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='power_system',
+        queryset=PowerSystem.objects.all(),
+        label='Power system',
+    )
+    rack_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='rack',
+        queryset=Rack.objects.all(),
+        label='Rack',
+    )
+
+    class Meta:
+        model = InternalPowerBus
+        fields = ('id', 'name', 'slug', 'power_system_id', 'rack_id', 'bus_role', 'supply_type', 'design_state')
+
+
+class InternalPowerBusAttachmentFilterSet(OrganizationalModelFilterSet):
+    internal_power_bus_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='internal_power_bus',
+        queryset=InternalPowerBus.objects.all(),
+        label='Internal power bus',
+    )
+    power_port_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='power_port',
+        queryset=PowerPort.objects.all(),
+        label='Power port',
+    )
+    power_port_device_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='power_port__device',
+        queryset=Device.objects.all(),
+        label='Power port device',
+    )
+    rack_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='internal_power_bus__rack',
+        queryset=Rack.objects.all(),
+        label='Rack',
+    )
+    power_system_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='internal_power_bus__power_system',
+        queryset=PowerSystem.objects.all(),
+        label='Power system',
+    )
+
+    class Meta:
+        model = InternalPowerBusAttachment
+        fields = (
+            'id', 'name', 'slug', 'internal_power_bus_id', 'power_system_id', 'rack_id', 'power_port_id',
+            'power_port_device_id', 'attachment_role', 'design_state',
         )
 
 

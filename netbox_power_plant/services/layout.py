@@ -164,4 +164,6 @@ def _resolve_delivery_target(delivery_point):
         return 'rack', delivery_point.rack_id, str(delivery_point.rack)
     if delivery_point.device is not None:
         return 'device', delivery_point.device_id, str(delivery_point.device)
+    if delivery_point.power_port is not None:
+        return 'device', delivery_point.power_port.device_id, str(delivery_point.power_port)
     return 'unknown', None, delivery_point.name

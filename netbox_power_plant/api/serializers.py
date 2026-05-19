@@ -1,4 +1,4 @@
-from dcim.models import Device, Location, Rack, Site
+from dcim.models import Device, Location, PowerPort, Rack, Site
 from rest_framework import serializers
 from rest_framework.serializers import ValidationError
 
@@ -16,6 +16,8 @@ except ImportError:
 
 from netbox_power_plant.choices import (
     DesignStateChoices,
+    InternalPowerBusAttachmentRoleChoices,
+    InternalPowerBusRoleChoices,
     NodeKindChoices,
     PhaseModeChoices,
     PlacementLabelModeChoices,
@@ -35,6 +37,8 @@ from netbox_power_plant.models import (
     ElectricalNodePlacement,
     ElectricalSegment,
     ElectricalTerminal,
+    InternalPowerBus,
+    InternalPowerBusAttachment,
     PowerDomain,
     PowerSystem,
     RackDeliveryPoint,
@@ -90,6 +94,14 @@ class NestedDeviceSerializer(WritableNestedSerializer):
         brief_fields = fields
 
 
+class NestedPowerPortSerializer(WritableNestedSerializer):
+
+    class Meta:
+        model = PowerPort
+        fields = ('id', 'url', 'display', 'name')
+        brief_fields = fields
+
+
 class NestedSiteSerializer(WritableNestedSerializer):
 
     class Meta:
@@ -110,6 +122,14 @@ class NestedRedundancyGroupSerializer(WritableNestedSerializer):
 
     class Meta:
         model = RedundancyGroup
+        fields = ('id', 'url', 'display', 'name', 'slug')
+        brief_fields = fields
+
+
+class NestedInternalPowerBusSerializer(WritableNestedSerializer):
+
+    class Meta:
+        model = InternalPowerBus
         fields = ('id', 'url', 'display', 'name', 'slug')
         brief_fields = fields
 
@@ -286,6 +306,7 @@ class RackDeliveryPointSerializer(OrganizationalModelSerializer):
     electrical_terminal = NestedElectricalTerminalSerializer(nested=True, required=False, allow_null=True)
     rack = NestedRackSerializer(nested=True, required=False, allow_null=True)
     device = NestedDeviceSerializer(nested=True, required=False, allow_null=True)
+    power_port = NestedPowerPortSerializer(nested=True, required=False, allow_null=True)
     expected_redundancy_group = NestedRedundancyGroupSerializer(nested=True, required=False, allow_null=True)
     design_state = ChoiceField(choices=DesignStateChoices, required=False)
 
@@ -293,8 +314,9 @@ class RackDeliveryPointSerializer(OrganizationalModelSerializer):
         model = RackDeliveryPoint
         fields = (
             'id', 'url', 'display_url', 'display', 'name', 'slug', 'power_system', 'electrical_node',
-            'electrical_terminal', 'rack', 'device', 'expected_redundancy_group', 'delivery_role', 'feed_label',
-            'design_state', 'description', 'comments', 'tags', 'custom_fields', 'created', 'last_updated',
+            'electrical_terminal', 'rack', 'device', 'power_port', 'expected_redundancy_group', 'delivery_role',
+            'feed_label', 'design_state', 'description', 'comments', 'tags', 'custom_fields', 'created',
+            'last_updated',
         )
         brief_fields = ('id', 'url', 'display', 'name', 'slug', 'feed_label', 'design_state')
 
@@ -305,14 +327,16 @@ class RackDeliveryPointSerializer(OrganizationalModelSerializer):
         electrical_terminal = data.get('electrical_terminal', getattr(self.instance, 'electrical_terminal', None))
         rack = data.get('rack', getattr(self.instance, 'rack', None))
         device = data.get('device', getattr(self.instance, 'device', None))
+        power_port = data.get('power_port', getattr(self.instance, 'power_port', None))
         expected_redundancy_group = data.get(
             'expected_redundancy_group', getattr(self.instance, 'expected_redundancy_group', None)
         )
 
         errors = {}
-        if bool(rack) == bool(device):
-            errors['rack'] = 'Select exactly one of rack or device.'
-            errors['device'] = 'Select exactly one of rack or device.'
+        target_fields = {'rack': rack, 'device': device, 'power_port': power_port}
+        if sum(bool(target) for target in target_fields.values()) != 1:
+            for field_name in target_fields:
+                errors[field_name] = 'Select exactly one of rack, device, or power port.'
 
         if not electrical_node and not electrical_terminal:
             errors['electrical_node'] = 'Select an electrical node or an electrical terminal.'
@@ -336,6 +360,9 @@ class RackDeliveryPointSerializer(OrganizationalModelSerializer):
         if power_system and device:
             self._validate_boundary_scope(errors, power_system, device, 'device')
 
+        if power_system and power_port:
+            self._validate_boundary_scope(errors, power_system, power_port.device, 'power_port')
+
         if errors:
             raise ValidationError(errors)
 
@@ -355,6 +382,75 @@ class RackDeliveryPointSerializer(OrganizationalModelSerializer):
 
         if boundary_location_id != power_system.location_id:
             errors[field_name] = 'The selected object must match the power system location when one is set.'
+
+
+class InternalPowerBusSerializer(OrganizationalModelSerializer):
+    power_system = NestedPowerSystemSerializer(nested=True)
+    rack = NestedRackSerializer(nested=True)
+    bus_role = ChoiceField(choices=InternalPowerBusRoleChoices, required=False)
+    supply_type = ChoiceField(choices=SupplyTypeChoices, required=False)
+    design_state = ChoiceField(choices=DesignStateChoices, required=False)
+
+    class Meta:
+        model = InternalPowerBus
+        fields = (
+            'id', 'url', 'display_url', 'display', 'name', 'slug', 'power_system', 'rack', 'bus_role',
+            'supply_type', 'nominal_voltage', 'design_state', 'description', 'comments', 'tags',
+            'custom_fields', 'created', 'last_updated',
+        )
+        brief_fields = ('id', 'url', 'display', 'name', 'slug', 'bus_role', 'supply_type', 'design_state')
+
+    def validate(self, data):
+        data = super().validate(data)
+        power_system = data.get('power_system', getattr(self.instance, 'power_system', None))
+        rack = data.get('rack', getattr(self.instance, 'rack', None))
+
+        errors = {}
+        if power_system and rack:
+            if rack.site_id != power_system.site_id:
+                errors['rack'] = 'The selected rack must belong to the same site as the power system.'
+            elif power_system.location_id and rack.location_id != power_system.location_id:
+                errors['rack'] = 'The selected rack must belong to the same location as the power system.'
+
+        if errors:
+            raise ValidationError(errors)
+
+        return data
+
+
+class InternalPowerBusAttachmentSerializer(OrganizationalModelSerializer):
+    internal_power_bus = NestedInternalPowerBusSerializer(nested=True)
+    power_port = NestedPowerPortSerializer(nested=True)
+    power_port_device = NestedDeviceSerializer(source='power_port.device', read_only=True)
+    attachment_role = ChoiceField(choices=InternalPowerBusAttachmentRoleChoices, required=False)
+    design_state = ChoiceField(choices=DesignStateChoices, required=False)
+
+    class Meta:
+        model = InternalPowerBusAttachment
+        fields = (
+            'id', 'url', 'display_url', 'display', 'name', 'slug', 'internal_power_bus', 'power_port',
+            'power_port_device', 'attachment_role', 'position_index', 'design_state', 'description', 'comments',
+            'tags', 'custom_fields', 'created', 'last_updated',
+        )
+        brief_fields = ('id', 'url', 'display', 'name', 'slug', 'attachment_role', 'position_index', 'design_state')
+
+    def validate(self, data):
+        data = super().validate(data)
+        internal_power_bus = data.get('internal_power_bus', getattr(self.instance, 'internal_power_bus', None))
+        power_port = data.get('power_port', getattr(self.instance, 'power_port', None))
+
+        errors = {}
+        if internal_power_bus and power_port:
+            device = power_port.device
+            if device.site_id != internal_power_bus.power_system.site_id:
+                errors['power_port'] = 'The attached power port device must belong to the same site as the power system.'
+            elif device.rack_id != internal_power_bus.rack_id:
+                errors['power_port'] = 'The attached power port device must belong to the bus rack.'
+
+        if errors:
+            raise ValidationError(errors)
+
+        return data
 
 
 class ElectricalNodePlacementSerializer(OrganizationalModelSerializer):

@@ -1,17 +1,29 @@
 from django.urls import reverse
 
-from dcim.models import Location, Rack, Site
+from dcim.models import Device, DeviceRole, DeviceType, Location, Manufacturer, PowerPort, Rack, Site
 from utilities.testing import TestCase
 from utilities.testing.utils import post_data
 
 from netbox_power_plant.choices import (
+    InternalPowerBusAttachmentRoleChoices,
     NodeKindChoices,
     RedundancyTopologyChoices,
     SegmentKindChoices,
     SupplyTypeChoices,
     TerminalDirectionChoices,
 )
-from netbox_power_plant.models import ElectricalNode, ElectricalSegment, ElectricalTerminal, PowerDomain, PowerSystem, RackDeliveryPoint, RedundancyGroup
+from netbox_power_plant.models import (
+    ElectricalNode,
+    ElectricalSegment,
+    ElectricalTerminal,
+    InternalPowerBus,
+    InternalPowerBusAttachment,
+    PowerDomain,
+    PowerSystem,
+    RackDeliveryPoint,
+    RedundancyGroup,
+)
+from netbox_power_plant.template_extensions import PowerPortPowerPlantContext
 
 
 class Phase1BViewTestCase(TestCase):
@@ -24,6 +36,8 @@ class Phase1BViewTestCase(TestCase):
         'netbox_power_plant.view_electricalnode',
         'netbox_power_plant.view_electricalterminal',
         'netbox_power_plant.view_electricalsegment',
+        'netbox_power_plant.view_internalpowerbus',
+        'netbox_power_plant.view_internalpowerbusattachment',
         'netbox_power_plant.view_rackdeliverypoint',
     )
 
@@ -124,6 +138,32 @@ class Phase1BViewTestCase(TestCase):
             path_state='active',
         )
         cls.rack = Rack.objects.create(name='Rack A1', site=cls.site, location=cls.location)
+        cls.manufacturer = Manufacturer.objects.create(name='Test Manufacturer', slug='test-manufacturer')
+        cls.device_type = DeviceType.objects.create(model='Boundary Device', slug='boundary-device', manufacturer=cls.manufacturer)
+        cls.device_role = DeviceRole.objects.create(name='Boundary Role', slug='boundary-role', color='ff0000')
+        cls.device = Device.objects.create(
+            name='Boundary Device A',
+            device_type=cls.device_type,
+            role=cls.device_role,
+            site=cls.site,
+            location=cls.location,
+            rack=cls.rack,
+        )
+        cls.power_port = PowerPort.objects.create(device=cls.device, name='PSU A')
+        cls.power_port_b = PowerPort.objects.create(device=cls.device, name='PSU B')
+        cls.internal_power_bus = InternalPowerBus.objects.create(
+            name='Rack A1 Busbar',
+            slug='rack-a1-busbar',
+            power_system=cls.power_system,
+            rack=cls.rack,
+        )
+        cls.bus_attachment = InternalPowerBusAttachment.objects.create(
+            name='Rack A1 PSU A Attachment',
+            slug='rack-a1-psu-a-attachment',
+            internal_power_bus=cls.internal_power_bus,
+            power_port=cls.power_port,
+            attachment_role=InternalPowerBusAttachmentRoleChoices.ROLE_LOAD,
+        )
         cls.delivery_point = RackDeliveryPoint.objects.create(
             name='Rack A Delivery',
             slug='rack-a-delivery',
@@ -141,6 +181,8 @@ class Phase1BViewTestCase(TestCase):
             ('plugins:netbox_power_plant:electricalnode', self.node.name),
             ('plugins:netbox_power_plant:electricalterminal', self.terminal.name),
             ('plugins:netbox_power_plant:electricalsegment', self.segment.name),
+            ('plugins:netbox_power_plant:internalpowerbus', self.internal_power_bus.name),
+            ('plugins:netbox_power_plant:internalpowerbusattachment', self.bus_attachment.name),
             ('plugins:netbox_power_plant:rackdeliverypoint', self.delivery_point.name),
         ):
             with self.subTest(url_name=url_name):
@@ -194,6 +236,67 @@ class Phase1BViewTestCase(TestCase):
         self.assertHttpStatus(response, 302)
         self.assertTrue(RackDeliveryPoint.objects.filter(slug='rack-a-delivery-secondary').exists())
 
+    def test_rack_delivery_point_add_view_accepts_power_port_target(self):
+        self.add_permissions('netbox_power_plant.add_rackdeliverypoint', 'dcim.view_powerport')
+        response = self.client.post(
+            reverse('plugins:netbox_power_plant:rackdeliverypoint_add'),
+            post_data({
+                'name': 'Power Port Delivery',
+                'slug': 'power-port-delivery',
+                'power_system': self.power_system,
+                'electrical_node': self.rack_node,
+                'electrical_terminal': self.rack_terminal,
+                'rack': None,
+                'device': None,
+                'power_port': self.power_port,
+                'expected_redundancy_group': self.redundancy_group,
+                'delivery_role': 'redundant',
+                'feed_label': 'A-feed-port',
+                'design_state': 'planned',
+                'description': '',
+                'comments': '',
+            }),
+        )
+
+        self.assertHttpStatus(response, 302)
+        self.assertTrue(RackDeliveryPoint.objects.filter(slug='power-port-delivery', power_port=self.power_port).exists())
+
+    def test_internal_power_bus_attachment_add_view_accepts_minimal_post(self):
+        self.add_permissions('netbox_power_plant.add_internalpowerbusattachment', 'dcim.view_powerport')
+        response = self.client.post(
+            reverse('plugins:netbox_power_plant:internalpowerbusattachment_add'),
+            post_data({
+                'name': 'Rack A1 PSU A Source Attachment',
+                'slug': 'rack-a1-psu-a-source-attachment',
+                'internal_power_bus': self.internal_power_bus,
+                'power_port': self.power_port_b,
+                'attachment_role': 'source',
+                'position_index': 2,
+                'design_state': 'planned',
+                'description': '',
+                'comments': '',
+            }),
+        )
+
+        self.assertHttpStatus(response, 302)
+        self.assertTrue(InternalPowerBusAttachment.objects.filter(slug='rack-a1-psu-a-source-attachment').exists())
+
+    def test_power_port_template_extension_renders_power_plant_context(self):
+        delivery_point = RackDeliveryPoint.objects.create(
+            name='Power Port Extension Delivery',
+            slug='power-port-extension-delivery',
+            power_system=self.power_system,
+            electrical_node=self.rack_node,
+            electrical_terminal=self.rack_terminal,
+            power_port=self.power_port,
+            feed_label='A-feed-port',
+        )
+        content = PowerPortPowerPlantContext({'object': self.power_port}).right_page()
+
+        self.assertIn('Power Plant', content)
+        self.assertIn(delivery_point.name, content)
+        self.assertIn(self.bus_attachment.name, content)
+
     def test_rack_delivery_summary_page_renders_derived_status(self):
         response = self.client.get(
             reverse('plugins:netbox_power_plant:powersystem_rack_delivery', kwargs={'pk': self.power_system.pk})
@@ -213,6 +316,10 @@ class Phase1BViewTestCase(TestCase):
             return self.node.pk
         if url_name.endswith('electricalterminal'):
             return self.terminal.pk
+        if url_name.endswith('internalpowerbus'):
+            return self.internal_power_bus.pk
+        if url_name.endswith('internalpowerbusattachment'):
+            return self.bus_attachment.pk
         if url_name.endswith('rackdeliverypoint'):
             return self.delivery_point.pk
         return self.segment.pk

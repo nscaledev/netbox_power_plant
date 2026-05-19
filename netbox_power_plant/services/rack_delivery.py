@@ -53,7 +53,7 @@ def build_rack_delivery_summary(power_system):
     redundancy_groups = list(power_system.redundancy_groups.prefetch_related('power_domains').order_by('name'))
     delivery_points = list(
         RackDeliveryPoint.objects.filter(power_system=power_system)
-        .select_related('rack', 'device', 'electrical_node', 'electrical_terminal', 'expected_redundancy_group')
+        .select_related('rack', 'device', 'power_port', 'power_port__device', 'electrical_node', 'electrical_terminal', 'expected_redundancy_group')
         .order_by('name', 'feed_label', 'pk')
     )
     rows = []
@@ -222,4 +222,6 @@ def _describe_delivery_point_target(delivery_point):
         return str(delivery_point.rack)
     if delivery_point.device is not None:
         return str(delivery_point.device)
+    if delivery_point.power_port is not None:
+        return str(delivery_point.power_port)
     return delivery_point.name

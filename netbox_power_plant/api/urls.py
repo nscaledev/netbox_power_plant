@@ -5,6 +5,8 @@ from .views import (
 	ElectricalNodePlacementViewSet,
 	ElectricalSegmentViewSet,
 	ElectricalTerminalViewSet,
+	InternalPowerBusAttachmentViewSet,
+	InternalPowerBusViewSet,
 	PowerDomainViewSet,
 	PowerSystemViewSet,
 	RackDeliveryPointViewSet,
@@ -24,6 +26,12 @@ router.register('electrical-nodes', ElectricalNodeViewSet, basename='electricaln
 router.register('electrical-terminals', ElectricalTerminalViewSet, basename='electricalterminal')
 router.register('electrical-segments', ElectricalSegmentViewSet, basename='electricalsegment')
 router.register('rack-delivery-points', RackDeliveryPointViewSet, basename='rackdeliverypoint')
+router.register('internal-power-buses', InternalPowerBusViewSet, basename='internalpowerbus')
+router.register(
+    'internal-power-bus-attachments',
+    InternalPowerBusAttachmentViewSet,
+    basename='internalpowerbusattachment',
+)
 router.register('electrical-node-placements', ElectricalNodePlacementViewSet, basename='electricalnodeplacement')
 
 urlpatterns = router.urls

@@ -1,6 +1,6 @@
 from django import forms
 
-from dcim.models import Device, Location, Rack, Site
+from dcim.models import Device, Location, PowerPort, Rack, Site
 try:
     from netbox.forms import OrganizationalModelFilterSetForm, OrganizationalModelForm
 except ImportError:
@@ -21,6 +21,8 @@ from .choices import (
     DesignStateChoices,
     NodeKindChoices,
     PhaseModeChoices,
+    InternalPowerBusAttachmentRoleChoices,
+    InternalPowerBusRoleChoices,
     PlacementLabelModeChoices,
     PlacementScopeChoices,
     PlacementSymbolKindChoices,
@@ -38,6 +40,8 @@ from .models import (
     ElectricalNodePlacement,
     ElectricalSegment,
     ElectricalTerminal,
+    InternalPowerBus,
+    InternalPowerBusAttachment,
     PowerDomain,
     PowerSystem,
     RackDeliveryPoint,
@@ -388,6 +392,84 @@ class ElectricalSegmentForm(OrganizationalModelForm):
         }
 
 
+class InternalPowerBusForm(OrganizationalModelForm):
+    power_system = DynamicModelChoiceField(
+        queryset=PowerSystem.objects.all(),
+        required=True,
+        selector=True,
+    )
+    rack = DynamicModelChoiceField(
+        queryset=Rack.objects.all(),
+        required=True,
+        selector=True,
+    )
+
+    fieldsets = (
+        FieldSet('name', 'slug', 'power_system', 'design_state', name='Scope'),
+        FieldSet('rack', 'bus_role', 'supply_type', 'nominal_voltage', name='Bus'),
+        FieldSet('description', 'comments', 'tags', name='Notes'),
+    )
+
+    class Meta:
+        model = InternalPowerBus
+        fields = (
+            'name',
+            'slug',
+            'power_system',
+            'rack',
+            'bus_role',
+            'supply_type',
+            'nominal_voltage',
+            'design_state',
+            'description',
+            'comments',
+            'tags',
+        )
+        widgets = {
+            'bus_role': forms.Select(choices=InternalPowerBusRoleChoices),
+            'supply_type': forms.Select(choices=SupplyTypeChoices),
+            'design_state': forms.Select(choices=DesignStateChoices),
+        }
+
+
+class InternalPowerBusAttachmentForm(OrganizationalModelForm):
+    internal_power_bus = DynamicModelChoiceField(
+        queryset=InternalPowerBus.objects.all(),
+        required=True,
+        selector=True,
+    )
+    power_port = DynamicModelChoiceField(
+        queryset=PowerPort.objects.all(),
+        required=True,
+        selector=True,
+    )
+
+    fieldsets = (
+        FieldSet('name', 'slug', 'internal_power_bus', 'design_state', name='Scope'),
+        FieldSet('power_port', 'attachment_role', 'position_index', name='Power Port Attachment'),
+        FieldSet('description', 'comments', 'tags', name='Notes'),
+    )
+
+    class Meta:
+        model = InternalPowerBusAttachment
+        fields = (
+            'name',
+            'slug',
+            'internal_power_bus',
+            'power_port',
+            'attachment_role',
+            'position_index',
+            'design_state',
+            'description',
+            'comments',
+            'tags',
+        )
+        widgets = {
+            'attachment_role': forms.Select(choices=InternalPowerBusAttachmentRoleChoices),
+            'design_state': forms.Select(choices=DesignStateChoices),
+        }
+
+
 class RackDeliveryPointForm(OrganizationalModelForm):
     power_system = DynamicModelChoiceField(
         queryset=PowerSystem.objects.all(),
@@ -414,6 +496,11 @@ class RackDeliveryPointForm(OrganizationalModelForm):
         required=False,
         selector=True,
     )
+    power_port = DynamicModelChoiceField(
+        queryset=PowerPort.objects.all(),
+        required=False,
+        selector=True,
+    )
     expected_redundancy_group = DynamicModelChoiceField(
         queryset=RedundancyGroup.objects.all(),
         required=False,
@@ -423,7 +510,7 @@ class RackDeliveryPointForm(OrganizationalModelForm):
     fieldsets = (
         FieldSet('name', 'slug', 'power_system', 'design_state', name='Scope'),
         FieldSet('electrical_node', 'electrical_terminal', 'expected_redundancy_group', name='Electrical Boundary'),
-        FieldSet('rack', 'device', 'delivery_role', 'feed_label', name='Target'),
+        FieldSet('rack', 'device', 'power_port', 'delivery_role', 'feed_label', name='Target'),
         FieldSet('description', 'comments', 'tags', name='Notes'),
     )
 
@@ -437,6 +524,7 @@ class RackDeliveryPointForm(OrganizationalModelForm):
             'electrical_terminal',
             'rack',
             'device',
+            'power_port',
             'expected_redundancy_group',
             'delivery_role',
             'feed_label',
@@ -647,7 +735,7 @@ class RackDeliveryPointFilterForm(OrganizationalModelFilterSetForm):
         FieldSet('q', 'filter_id'),
         FieldSet('power_system_id', 'expected_redundancy_group_id', name='Scope'),
         FieldSet('electrical_node_id', 'electrical_terminal_id', name='Electrical Boundary'),
-        FieldSet('rack_id', 'device_id', 'design_state', name='Target'),
+        FieldSet('rack_id', 'device_id', 'power_port_id', 'design_state', name='Target'),
     )
     power_system_id = DynamicModelMultipleChoiceField(
         queryset=PowerSystem.objects.all(),
@@ -680,6 +768,49 @@ class RackDeliveryPointFilterForm(OrganizationalModelFilterSetForm):
         queryset=Device.objects.all(),
         required=False,
         label='Device',
+    )
+    power_port_id = DynamicModelMultipleChoiceField(
+        queryset=PowerPort.objects.all(),
+        required=False,
+        label='Power port',
+    )
+
+
+class InternalPowerBusFilterForm(OrganizationalModelFilterSetForm):
+    model = InternalPowerBus
+    fieldsets = (
+        FieldSet('q', 'filter_id'),
+        FieldSet('power_system_id', 'rack_id', name='Scope'),
+        FieldSet('bus_role', 'supply_type', 'design_state', name='Bus'),
+    )
+    power_system_id = DynamicModelMultipleChoiceField(
+        queryset=PowerSystem.objects.all(),
+        required=False,
+        label='Power system',
+    )
+    rack_id = DynamicModelMultipleChoiceField(
+        queryset=Rack.objects.all(),
+        required=False,
+        label='Rack',
+    )
+
+
+class InternalPowerBusAttachmentFilterForm(OrganizationalModelFilterSetForm):
+    model = InternalPowerBusAttachment
+    fieldsets = (
+        FieldSet('q', 'filter_id'),
+        FieldSet('internal_power_bus_id', 'power_port_id', name='Attachment'),
+        FieldSet('attachment_role', 'design_state', name='Attributes'),
+    )
+    internal_power_bus_id = DynamicModelMultipleChoiceField(
+        queryset=InternalPowerBus.objects.all(),
+        required=False,
+        label='Internal power bus',
+    )
+    power_port_id = DynamicModelMultipleChoiceField(
+        queryset=PowerPort.objects.all(),
+        required=False,
+        label='Power port',
     )
 
 

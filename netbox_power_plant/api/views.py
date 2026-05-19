@@ -9,6 +9,8 @@ from netbox_power_plant.models import (
     ElectricalNodePlacement,
     ElectricalSegment,
     ElectricalTerminal,
+    InternalPowerBus,
+    InternalPowerBusAttachment,
     PowerDomain,
     PowerSystem,
     RackDeliveryPoint,
@@ -59,10 +61,26 @@ class ElectricalSegmentViewSet(NetBoxModelViewSet):
 
 class RackDeliveryPointViewSet(NetBoxModelViewSet):
     queryset = RackDeliveryPoint.objects.select_related(
-        'power_system', 'electrical_node', 'electrical_terminal', 'rack', 'device', 'expected_redundancy_group'
+        'power_system', 'electrical_node', 'electrical_terminal', 'rack', 'device', 'power_port', 'power_port__device',
+        'expected_redundancy_group'
     )
     serializer_class = serializers.RackDeliveryPointSerializer
     filterset_class = filtersets.RackDeliveryPointFilterSet
+
+
+class InternalPowerBusViewSet(NetBoxModelViewSet):
+    queryset = InternalPowerBus.objects.select_related('power_system', 'rack')
+    serializer_class = serializers.InternalPowerBusSerializer
+    filterset_class = filtersets.InternalPowerBusFilterSet
+
+
+class InternalPowerBusAttachmentViewSet(NetBoxModelViewSet):
+    queryset = InternalPowerBusAttachment.objects.select_related(
+        'internal_power_bus', 'internal_power_bus__power_system', 'internal_power_bus__rack',
+        'power_port', 'power_port__device'
+    )
+    serializer_class = serializers.InternalPowerBusAttachmentSerializer
+    filterset_class = filtersets.InternalPowerBusAttachmentFilterSet
 
 
 class ElectricalNodePlacementViewSet(NetBoxModelViewSet):

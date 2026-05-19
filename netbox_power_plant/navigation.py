@@ -84,6 +84,28 @@ menu_items = (
         ),
     ),
     PluginMenuItem(
+        link='plugins:netbox_power_plant:internalpowerbus_list',
+        link_text='Internal Power Buses',
+        buttons=(
+            PluginMenuButton(
+                link='plugins:netbox_power_plant:internalpowerbus_add',
+                title='Add internal power bus',
+                icon_class='mdi mdi-plus-thick',
+            ),
+        ),
+    ),
+    PluginMenuItem(
+        link='plugins:netbox_power_plant:internalpowerbusattachment_list',
+        link_text='Bus Power Port Attachments',
+        buttons=(
+            PluginMenuButton(
+                link='plugins:netbox_power_plant:internalpowerbusattachment_add',
+                title='Add bus power port attachment',
+                icon_class='mdi mdi-plus-thick',
+            ),
+        ),
+    ),
+    PluginMenuItem(
         link='plugins:netbox_power_plant:electricalnodeplacement_list',
         link_text='Electrical Node Placements',
         buttons=(

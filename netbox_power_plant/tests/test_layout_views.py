@@ -197,7 +197,10 @@ class PowerSystemLayoutViewTestCase(TestCase):
         )
 
     def test_layout_view_shows_unavailable_state_when_floorplan_plugin_is_disabled(self):
-        response = self.client.get(reverse('plugins:netbox_power_plant:powersystem_layout', kwargs={'pk': self.power_system.pk}))
+        plugins = [plugin for plugin in getattr(settings, 'PLUGINS', ()) if plugin != 'netbox_floorplan']
+
+        with override_settings(PLUGINS=plugins):
+            response = self.client.get(reverse('plugins:netbox_power_plant:powersystem_layout', kwargs={'pk': self.power_system.pk}))
 
         self.assertHttpStatus(response, 200)
         self.assertContains(response, 'Power System Layout')

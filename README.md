@@ -21,6 +21,12 @@ The current scaffold is intentionally minimal. It provides:
 - a test configuration that loads the plugin through NetBox's testing settings;
 - initial contributor docs aligned with the other plugin repos in this workspace.
 
+The NetBox 4.2.3 compatibility branch treats `dcim.PowerPort` as the only
+native NetBox power object at the device boundary. Power panels, feeds, outlets,
+internal rack buses, and delivery paths are modeled in `netbox_power_plant`
+through electrical nodes, terminals, segments, rack delivery points, and
+internal power bus attachments.
+
 For the planned domain model and longer implementation direction, see
 `netbox_power_plant_plugin_proposal.md`.
 

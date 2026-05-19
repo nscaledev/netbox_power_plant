@@ -1,13 +1,16 @@
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
-from dcim.models import Device, Location, Rack, Site
+from dcim.models import Device, Location, PowerPort, Rack, Site
 from netbox.models import OrganizationalModel
 from utilities.fields import ColorField
 
 from .choices import (
 	DesignStateChoices,
+	InternalPowerBusAttachmentRoleChoices,
+	InternalPowerBusRoleChoices,
 	NodeKindChoices,
 	PhaseModeChoices,
 	PlacementLabelModeChoices,
@@ -25,7 +28,15 @@ from .choices import (
 from .services.validation import validate_topology_segment, validate_topology_terminal
 
 
-class PowerSystem(OrganizationalModel):
+class PowerPlantURLMixin:
+	def get_absolute_url(self):
+		return reverse(
+			f'plugins:netbox_power_plant:{self._meta.model_name}',
+			args=[self.pk],
+		)
+
+
+class PowerSystem(PowerPlantURLMixin, OrganizationalModel):
 	site = models.ForeignKey(
 		to=Site,
 		on_delete=models.PROTECT,
@@ -85,7 +96,7 @@ class PowerSystem(OrganizationalModel):
 			})
 
 
-class PowerDomain(OrganizationalModel):
+class PowerDomain(PowerPlantURLMixin, OrganizationalModel):
 	power_system = models.ForeignKey(
 		to=PowerSystem,
 		on_delete=models.CASCADE,
@@ -125,7 +136,7 @@ class PowerDomain(OrganizationalModel):
 		verbose_name_plural = 'power domains'
 
 
-class RedundancyGroup(OrganizationalModel):
+class RedundancyGroup(PowerPlantURLMixin, OrganizationalModel):
 	power_system = models.ForeignKey(
 		to=PowerSystem,
 		on_delete=models.CASCADE,
@@ -158,7 +169,7 @@ class RedundancyGroup(OrganizationalModel):
 		verbose_name_plural = 'redundancy groups'
 
 
-class ElectricalNode(OrganizationalModel):
+class ElectricalNode(PowerPlantURLMixin, OrganizationalModel):
 	power_system = models.ForeignKey(
 		to=PowerSystem,
 		on_delete=models.CASCADE,
@@ -319,7 +330,7 @@ class ElectricalNode(OrganizationalModel):
 			})
 
 
-class ElectricalTerminal(OrganizationalModel):
+class ElectricalTerminal(PowerPlantURLMixin, OrganizationalModel):
 	node = models.ForeignKey(
 		to=ElectricalNode,
 		on_delete=models.CASCADE,
@@ -394,7 +405,7 @@ class ElectricalTerminal(OrganizationalModel):
 		validate_topology_terminal(self)
 
 
-class ElectricalSegment(OrganizationalModel):
+class ElectricalSegment(PowerPlantURLMixin, OrganizationalModel):
 	power_system = models.ForeignKey(
 		to=PowerSystem,
 		on_delete=models.CASCADE,
@@ -491,7 +502,7 @@ class ElectricalSegment(OrganizationalModel):
 		validate_topology_segment(self)
 
 
-class RackDeliveryPoint(OrganizationalModel):
+class RackDeliveryPoint(PowerPlantURLMixin, OrganizationalModel):
 	power_system = models.ForeignKey(
 		to=PowerSystem,
 		on_delete=models.CASCADE,
@@ -522,6 +533,13 @@ class RackDeliveryPoint(OrganizationalModel):
 		to=Device,
 		on_delete=models.PROTECT,
 		related_name='power_plant_delivery_points',
+		blank=True,
+		null=True,
+	)
+	power_port = models.ForeignKey(
+		to=PowerPort,
+		on_delete=models.PROTECT,
+		related_name='power_plant_rack_delivery_points',
 		blank=True,
 		null=True,
 	)
@@ -557,9 +575,12 @@ class RackDeliveryPoint(OrganizationalModel):
 		super().clean()
 		errors = {}
 
-		if bool(self.rack) == bool(self.device):
-			errors['rack'] = _('Select exactly one of rack or device.')
-			errors['device'] = _('Select exactly one of rack or device.')
+		target_fields = ('rack', 'device', 'power_port')
+		selected_target_count = sum(bool(getattr(self, field_name)) for field_name in target_fields)
+		if selected_target_count != 1:
+			message = _('Select exactly one of rack, device, or power port.')
+			for field_name in target_fields:
+				errors[field_name] = message
 
 		if not self.electrical_node_id and not self.electrical_terminal_id:
 			errors['electrical_node'] = _('Select an electrical node or an electrical terminal.')
@@ -584,6 +605,9 @@ class RackDeliveryPoint(OrganizationalModel):
 		if self.device_id:
 			self._validate_site_location_scope(errors, self.device, 'device')
 
+		if self.power_port_id:
+			self._validate_site_location_scope(errors, self.power_port.device, 'power_port')
+
 		if errors:
 			raise ValidationError(errors)
 
@@ -604,7 +628,7 @@ class RackDeliveryPoint(OrganizationalModel):
 			errors[field_name] = _('The selected object must match the power system location when one is set.')
 
 
-class ElectricalNodePlacement(OrganizationalModel):
+class ElectricalNodePlacement(PowerPlantURLMixin, OrganizationalModel):
 	power_system = models.ForeignKey(
 		to=PowerSystem,
 		on_delete=models.CASCADE,
@@ -714,11 +738,6 @@ class ElectricalNodePlacement(OrganizationalModel):
 				errors['placement_scope_type'] = _('Location-scoped power systems require location placements.')
 			if self.location_id != power_system_location_id:
 				errors['location'] = _('The placement location must match the power system location.')
-		else:
-			if self.placement_scope_type != PlacementScopeChoices.SCOPE_SITE:
-				errors['placement_scope_type'] = _('Site-scoped power systems require site placements.')
-			if self.location_id:
-				errors['location'] = _('Leave location blank when the power system does not resolve to a location floorplan.')
 
 		if self.placement_scope_type == PlacementScopeChoices.SCOPE_SITE and self.location_id:
 			errors['location'] = _('Site-scoped placements cannot set a location.')
@@ -746,3 +765,113 @@ class ElectricalNodePlacement(OrganizationalModel):
 			queryset = queryset.exclude(pk=self.pk)
 		return queryset.exists()
 
+
+class InternalPowerBus(PowerPlantURLMixin, OrganizationalModel):
+	power_system = models.ForeignKey(
+		to=PowerSystem,
+		on_delete=models.CASCADE,
+		related_name='internal_power_buses',
+	)
+	rack = models.ForeignKey(
+		to=Rack,
+		on_delete=models.PROTECT,
+		related_name='power_plant_internal_buses',
+	)
+	bus_role = models.CharField(
+		max_length=32,
+		choices=InternalPowerBusRoleChoices,
+		default=InternalPowerBusRoleChoices.ROLE_BUSBAR,
+	)
+	supply_type = models.CharField(
+		max_length=16,
+		choices=SupplyTypeChoices,
+		default=SupplyTypeChoices.SUPPLY_DC,
+	)
+	nominal_voltage = models.DecimalField(
+		max_digits=8,
+		decimal_places=2,
+		blank=True,
+		null=True,
+		help_text=_('Nominal bus voltage, expressed in volts.'),
+	)
+	design_state = models.CharField(
+		max_length=32,
+		choices=DesignStateChoices,
+		default=DesignStateChoices.STATE_PLANNED,
+	)
+
+	class Meta:
+		ordering = ('power_system__name', 'rack__name', 'name')
+		constraints = (
+			models.UniqueConstraint(
+				fields=('rack', 'name'),
+				name='netbox_power_plant_internalpowerbus_rack_name',
+			),
+		)
+		verbose_name = 'internal power bus'
+		verbose_name_plural = 'internal power buses'
+
+	def clean(self):
+		super().clean()
+		errors = {}
+
+		if self.rack_id and self.power_system_id:
+			if self.rack.site_id != self.power_system.site_id:
+				errors['rack'] = _('The selected rack must belong to the same site as the power system.')
+			elif self.power_system.location_id and self.rack.location_id != self.power_system.location_id:
+				errors['rack'] = _('The selected rack must belong to the same location as the power system.')
+
+		if errors:
+			raise ValidationError(errors)
+
+
+class InternalPowerBusAttachment(PowerPlantURLMixin, OrganizationalModel):
+	internal_power_bus = models.ForeignKey(
+		to=InternalPowerBus,
+		on_delete=models.CASCADE,
+		related_name='attachments',
+	)
+	power_port = models.ForeignKey(
+		to=PowerPort,
+		on_delete=models.PROTECT,
+		related_name='power_plant_internal_bus_attachments',
+	)
+	attachment_role = models.CharField(
+		max_length=16,
+		choices=InternalPowerBusAttachmentRoleChoices,
+	)
+	position_index = models.PositiveSmallIntegerField(
+		blank=True,
+		null=True,
+	)
+	design_state = models.CharField(
+		max_length=32,
+		choices=DesignStateChoices,
+		default=DesignStateChoices.STATE_PLANNED,
+	)
+
+	class Meta:
+		ordering = ('internal_power_bus__name', 'attachment_role', 'position_index', 'power_port__device__name', 'power_port__name')
+		constraints = (
+			models.UniqueConstraint(
+				fields=('internal_power_bus', 'power_port'),
+				name='netbox_power_plant_internalpowerbusattachment_bus_port',
+			),
+		)
+		verbose_name = 'internal power bus attachment'
+		verbose_name_plural = 'internal power bus attachments'
+
+	def clean(self):
+		super().clean()
+		errors = {}
+
+		if self.internal_power_bus_id and self.power_port_id:
+			bus = self.internal_power_bus
+			device = self.power_port.device
+			if device.site_id != bus.power_system.site_id:
+				errors['power_port'] = _('The attached power port device must belong to the same site as the power system.')
+			elif device.rack_id != bus.rack_id:
+				errors['power_port'] = _('The attached power port device must belong to the bus rack.')
+
+		if errors:
+			raise ValidationError(errors)
