@@ -1,0 +1,27 @@
+{% extends 'generic/object.html' %}
+{% load helpers %}
+
+{% block content %}
+  <div class="row">
+    <div class="col-md-8">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Transformer Detail</h2>
+        </div>
+        <div class="card-body">
+          <table class="table table-hover attr-table mb-0">
+            <tr><th>Electrical Node</th><td>{{ object.node|linkify }}</td></tr>
+            <tr><th>Power System</th><td>{{ object.node.power_system|linkify }}</td></tr>
+            <tr><th>Site</th><td>{{ object.node.site|linkify }}</td></tr>
+            <tr><th>Primary Voltage</th><td>{% if object.primary_kv %}{{ object.primary_kv }} kV{% else %}—{% endif %}</td></tr>
+            <tr><th>Secondary Voltage</th><td>{% if object.secondary_kv %}{{ object.secondary_kv }} kV{% else %}—{% endif %}</td></tr>
+            <tr><th>kVA Rating</th><td>{{ object.kva_rating|default:'—' }}</td></tr>
+            <tr><th>Vector Group</th><td>{{ object.vector_group|default:'—' }}</td></tr>
+            <tr><th>Impedance</th><td>{% if object.impedance_pct %}{{ object.impedance_pct }}%{% else %}—{% endif %}</td></tr>
+            <tr><th>Cooling Type</th><td>{{ object.cooling_type|default:'—' }}</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}

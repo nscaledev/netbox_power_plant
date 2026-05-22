@@ -1,0 +1,27 @@
+{% extends 'generic/object.html' %}
+{% load helpers %}
+
+{% block content %}
+  <div class="row">
+    <div class="col-md-8">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">BESS Detail</h2>
+        </div>
+        <div class="card-body">
+          <table class="table table-hover attr-table mb-0">
+            <tr><th>Electrical Node</th><td>{{ object.node|linkify }}</td></tr>
+            <tr><th>Power System</th><td>{{ object.node.power_system|linkify }}</td></tr>
+            <tr><th>Site</th><td>{{ object.node.site|linkify }}</td></tr>
+            <tr><th>Technology</th><td>{{ object.technology|default:'—' }}</td></tr>
+            <tr><th>Energy Capacity</th><td>{% if object.energy_capacity_kwh %}{{ object.energy_capacity_kwh }} kWh{% else %}—{% endif %}</td></tr>
+            <tr><th>Peak Power</th><td>{% if object.peak_power_kw %}{{ object.peak_power_kw }} kW{% else %}—{% endif %}</td></tr>
+            <tr><th>Charge Rate</th><td>{% if object.charge_rate_kw %}{{ object.charge_rate_kw }} kW{% else %}—{% endif %}</td></tr>
+            <tr><th>Usable SOC Min</th><td>{% if object.usable_soc_min_pct %}{{ object.usable_soc_min_pct }}%{% else %}—{% endif %}</td></tr>
+            <tr><th>Usable SOC Max</th><td>{% if object.usable_soc_max_pct %}{{ object.usable_soc_max_pct }}%{% else %}—{% endif %}</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}

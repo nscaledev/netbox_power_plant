@@ -1,0 +1,274 @@
+{% load static %}
+
+<link rel="stylesheet" href="{% static 'netbox_power_plant/spatial_review.css' %}">
+
+{% if spatial_review_map and spatial_review_map.is_available != False %}
+  <div
+    class="card mb-4 spatial-review-map"
+    data-spatial-review-map
+    data-frame-width="{{ spatial_review_map.width }}"
+    data-frame-height="{{ spatial_review_map.height }}"
+    data-frame-units="{{ spatial_review_map.unit_label }}"
+  >
+    <div class="card-header d-flex align-items-center justify-content-between gap-2">
+      <h2 class="card-title mb-0">Visual Spatial Review</h2>
+      <div class="spatial-review-legend" aria-label="Spatial review legend">
+        <span><i class="spatial-review-legend-swatch spatial-review-legend-swatch-approved"></i>Approved</span>
+        <span><i class="spatial-review-legend-swatch spatial-review-legend-swatch-corrected"></i>Corrected</span>
+        <span><i class="spatial-review-legend-swatch spatial-review-legend-swatch-review-required"></i>Review required</span>
+        <span><i class="spatial-review-legend-swatch spatial-review-legend-swatch-unknown"></i>Unknown</span>
+        <span><i class="spatial-review-legend-swatch spatial-review-legend-swatch-placement"></i>Placement</span>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="d-flex flex-wrap gap-2 mb-3" aria-label="Spatial review status counts">
+        <span class="badge text-bg-success">Approved {{ spatial_review_map.status_counts.approved|default:'0' }}</span>
+        <span class="badge text-bg-primary">Corrected {{ spatial_review_map.status_counts.operator_corrected|default:'0' }}</span>
+        <span class="badge text-bg-warning">Review required {{ spatial_review_map.status_counts.operator_review_required|default:'0' }}</span>
+        <span class="badge text-bg-secondary">Unknown {{ spatial_review_map.status_counts.unknown|default:'0' }}</span>
+        <span class="badge text-bg-info">Placements {{ spatial_review_map.placements|length }}</span>
+      </div>
+
+      <div class="spatial-review-layout">
+        <div class="spatial-review-canvas" data-spatial-review-canvas>
+          <svg
+            class="spatial-review-svg"
+            viewBox="{{ spatial_review_map.view_box }}"
+            role="img"
+            aria-label="Visual spatial review map"
+            data-spatial-review-svg
+          >
+            <defs>
+              <pattern id="spatial-review-grid" width="25" height="25" patternUnits="userSpaceOnUse">
+                <path class="spatial-review-grid-line" d="M 25 0 L 0 0 0 25" fill="none" />
+              </pattern>
+            </defs>
+
+            <g
+              class="spatial-review-coordinate-plane"
+              transform="translate(0 {{ spatial_review_map.height }}) scale(1 -1)"
+              data-spatial-coordinate-plane
+            >
+              <rect class="spatial-review-frame" x="0" y="0" width="{{ spatial_review_map.width }}" height="{{ spatial_review_map.height }}" rx="0" />
+              <rect x="0" y="0" width="{{ spatial_review_map.width }}" height="{{ spatial_review_map.height }}" fill="url(#spatial-review-grid)" />
+
+              <g class="spatial-review-axes" aria-hidden="true">
+                <line class="spatial-review-axis-line" x1="0" y1="0" x2="{{ spatial_review_map.width }}" y2="0" />
+                <line class="spatial-review-axis-line" x1="0" y1="0" x2="0" y2="{{ spatial_review_map.height }}" />
+              </g>
+
+              <g class="spatial-review-spaces" data-spatial-review-edit-scope="spaces">
+                {% for space in spatial_review_map.spaces %}
+                  <g
+                    class="spatial-review-object spatial-review-space spatial-review-status-{{ space.status_class|default:'unknown' }}"
+                    tabindex="0"
+                    role="button"
+                    aria-pressed="false"
+                    aria-label="Review {{ space.label }}"
+                    data-spatial-review-object
+                    data-spatial-review-kind="space"
+                    data-object-id="{{ space.id }}"
+                    data-label="{{ space.label }}"
+                    data-kind-label="{{ space.kind_label }}"
+                    data-status-label="{{ space.status_label }}"
+                    data-review-state="{{ space.review_state }}"
+                    data-geometry-review-state="{{ space.geometry_review_state }}"
+                    data-geometry-review-method="{{ space.geometry_review_method }}"
+                    data-confidence="{{ space.confidence }}"
+                    data-href="{{ space.object_url|default:'' }}"
+                    data-geometry="{{ space.x }}, {{ space.y }} / {{ space.width }} x {{ space.depth }} {{ spatial_review_map.unit_label }}"
+                    data-edit-x="{{ space.x }}"
+                    data-edit-y="{{ space.y }}"
+                    data-edit-width="{{ space.width }}"
+                    data-edit-depth="{{ space.depth }}"
+                  >
+                    <rect
+                      class="spatial-review-shape"
+                      x="{{ space.x }}"
+                      y="{{ space.y }}"
+                      width="{{ space.width }}"
+                      height="{{ space.depth }}"
+                      data-spatial-drag-handle="move"
+                    />
+                    <rect
+                      class="spatial-review-edit-handle"
+                      x="{{ space.x }}"
+                      y="{{ space.y }}"
+                      width="6"
+                      height="6"
+                      data-spatial-drag-handle="resize"
+                    />
+                    <title>{{ space.label }}{% if space.status_label %} / {{ space.status_label }}{% endif %}</title>
+                  </g>
+                {% endfor %}
+              </g>
+
+              <g class="spatial-review-placements" data-spatial-review-edit-scope="placements">
+                {% for placement in spatial_review_map.placements %}
+                  <g
+                    class="spatial-review-object spatial-review-placement spatial-review-placement-{{ placement.shape }} spatial-review-status-{{ placement.status_class }}"
+                    tabindex="0"
+                    role="button"
+                    aria-pressed="false"
+                    aria-label="Review {{ placement.object_label }}"
+                    data-spatial-review-object
+                    data-spatial-review-kind="placement"
+                    data-object-id="{{ placement.object_id }}"
+                    data-label="{{ placement.object_label }}"
+                    data-kind-label="{{ placement.kind_label }}"
+                    data-status-label="{{ placement.status_label }}"
+                    data-review-state="{% if placement.review_state %}{{ placement.review_state }}{% else %}{{ placement.placement_kind }}{% endif %}"
+                    data-placement-kind="{{ placement.placement_kind }}"
+                    data-binding-label="{{ placement.binding_label }}"
+                    data-binding-status="{{ placement.binding_status }}"
+                    data-confidence="{{ placement.confidence }}"
+                    data-href="{{ placement.object_url|default:'' }}"
+                    data-geometry="{{ placement.geometry_x }}, {{ placement.geometry_y }}{% if placement.width and placement.depth %} / {{ placement.width }} x {{ placement.depth }}{% endif %} {{ spatial_review_map.unit_label }}"
+                    data-edit-x="{{ placement.geometry_x }}"
+                    data-edit-y="{{ placement.geometry_y }}"
+                    data-edit-width="{{ placement.width|default:'' }}"
+                    data-edit-depth="{{ placement.depth|default:'' }}"
+                  >
+                    {% if placement.shape == 'rect' %}
+                      <rect x="{{ placement.geometry_x }}" y="{{ placement.geometry_y }}" width="{{ placement.width }}" height="{{ placement.depth }}" />
+                      <rect class="spatial-review-edit-handle" x="{{ placement.geometry_x }}" y="{{ placement.geometry_y }}" width="3" height="3" />
+                    {% else %}
+                      <circle cx="{{ placement.geometry_x }}" cy="{{ placement.geometry_y }}" r="3" />
+                    {% endif %}
+                    <title>{{ placement.object_label }} / {{ placement.label }}</title>
+                  </g>
+                {% endfor %}
+              </g>
+            </g>
+          </svg>
+        </div>
+
+        <aside
+          class="spatial-review-detail spatial-review-empty-detail"
+          data-spatial-review-detail
+          data-empty-title="Select a space or placement"
+          data-empty-description="Click a rendered object to review its details."
+        >
+          <div class="spatial-review-detail-title" data-spatial-detail-field="label">Select a space or placement</div>
+          <div class="spatial-review-detail-meta" data-spatial-detail-field="kind">Click a rendered object to review its details.</div>
+          <dl>
+            <dt>Status</dt>
+            <dd data-spatial-detail-field="status">&mdash;</dd>
+            <dt>Review State</dt>
+            <dd data-spatial-detail-field="reviewState">&mdash;</dd>
+            <dt>Confidence</dt>
+            <dd data-spatial-detail-field="confidence">&mdash;</dd>
+            <dt>Geometry</dt>
+            <dd data-spatial-detail-field="geometry">&mdash;</dd>
+          </dl>
+          <a class="btn btn-sm btn-outline-primary" href="#" data-spatial-detail-link hidden>Open object</a>
+          {% if can_edit_spatial_review_geometry and spatial_review_geometry_form %}
+            <hr>
+            <form method="post" data-spatial-review-geometry-form>
+              {% csrf_token %}
+              <input type="hidden" name="action" value="update_space_geometry">
+              <input type="hidden" name="site" value="{{ summary.site_slug }}">
+              <fieldset {% if not spatial_review_geometry_form.errors %}disabled{% endif %} data-spatial-geometry-fieldset>
+                {{ spatial_review_geometry_form.space_id }}
+                <div class="spatial-review-edit-title" data-spatial-geometry-selected-label>
+                  Select a space to edit geometry.
+                </div>
+                <div class="row g-2">
+                  <div class="col-6">
+                    <label class="form-label" for="{{ spatial_review_geometry_form.x.id_for_label }}">{{ spatial_review_geometry_form.x.label }}</label>
+                    {{ spatial_review_geometry_form.x }}
+                    {% if spatial_review_geometry_form.x.errors %}<div class="text-danger small">{{ spatial_review_geometry_form.x.errors|join:', ' }}</div>{% endif %}
+                  </div>
+                  <div class="col-6">
+                    <label class="form-label" for="{{ spatial_review_geometry_form.y.id_for_label }}">{{ spatial_review_geometry_form.y.label }}</label>
+                    {{ spatial_review_geometry_form.y }}
+                    {% if spatial_review_geometry_form.y.errors %}<div class="text-danger small">{{ spatial_review_geometry_form.y.errors|join:', ' }}</div>{% endif %}
+                  </div>
+                  <div class="col-6">
+                    <label class="form-label" for="{{ spatial_review_geometry_form.width.id_for_label }}">{{ spatial_review_geometry_form.width.label }}</label>
+                    {{ spatial_review_geometry_form.width }}
+                    {% if spatial_review_geometry_form.width.errors %}<div class="text-danger small">{{ spatial_review_geometry_form.width.errors|join:', ' }}</div>{% endif %}
+                  </div>
+                  <div class="col-6">
+                    <label class="form-label" for="{{ spatial_review_geometry_form.depth.id_for_label }}">{{ spatial_review_geometry_form.depth.label }}</label>
+                    {{ spatial_review_geometry_form.depth }}
+                    {% if spatial_review_geometry_form.depth.errors %}<div class="text-danger small">{{ spatial_review_geometry_form.depth.errors|join:', ' }}</div>{% endif %}
+                  </div>
+                  <div class="col-12">
+                    <label class="form-label" for="{{ spatial_review_geometry_form.notes.id_for_label }}">{{ spatial_review_geometry_form.notes.label }}</label>
+                    {{ spatial_review_geometry_form.notes }}
+                    {% if spatial_review_geometry_form.notes.errors %}<div class="text-danger small">{{ spatial_review_geometry_form.notes.errors|join:', ' }}</div>{% endif %}
+                  </div>
+                </div>
+                <label class="form-check mt-2">
+                  {{ spatial_review_geometry_form.confirm }}
+                  <span class="form-check-label">{{ spatial_review_geometry_form.confirm.label }}</span>
+                </label>
+                {% if spatial_review_geometry_form.confirm.errors %}
+                  <div class="text-danger small">{{ spatial_review_geometry_form.confirm.errors|join:', ' }}</div>
+                {% endif %}
+                {% if spatial_review_geometry_form.non_field_errors %}
+                  <div class="alert alert-danger mt-2">{{ spatial_review_geometry_form.non_field_errors|join:', ' }}</div>
+                {% endif %}
+                <button type="submit" class="btn btn-sm btn-primary mt-2" data-spatial-geometry-submit>
+                  Save Geometry Correction
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-secondary mt-2" data-spatial-geometry-reset>
+                  Use Saved Geometry
+                </button>
+                <div class="small text-secondary mt-2" data-spatial-geometry-preview-state>
+                  Drag a selected space to move it, or drag its handle to resize it.
+                </div>
+              </fieldset>
+            </form>
+          {% endif %}
+          {% if can_approve_spatial_review_geometry and spatial_review_geometry_approval_form %}
+            <hr>
+            <form method="post" data-spatial-review-approval-form>
+              {% csrf_token %}
+              <input type="hidden" name="action" value="approve_space_geometry">
+              <input type="hidden" name="site" value="{{ summary.site_slug }}">
+              <fieldset {% if not spatial_review_geometry_approval_form.errors %}disabled{% endif %} data-spatial-approval-fieldset>
+                {{ spatial_review_geometry_approval_form.space_id }}
+                <div class="spatial-review-edit-title" data-spatial-approval-selected-label>
+                  Select a corrected space to approve.
+                </div>
+                <div class="mb-2">
+                  <label class="form-label" for="{{ spatial_review_geometry_approval_form.notes.id_for_label }}">{{ spatial_review_geometry_approval_form.notes.label }}</label>
+                  {{ spatial_review_geometry_approval_form.notes }}
+                  {% if spatial_review_geometry_approval_form.notes.errors %}<div class="text-danger small">{{ spatial_review_geometry_approval_form.notes.errors|join:', ' }}</div>{% endif %}
+                </div>
+                <label class="form-check mt-2">
+                  {{ spatial_review_geometry_approval_form.confirm }}
+                  <span class="form-check-label">{{ spatial_review_geometry_approval_form.confirm.label }}</span>
+                </label>
+                {% if spatial_review_geometry_approval_form.confirm.errors %}
+                  <div class="text-danger small">{{ spatial_review_geometry_approval_form.confirm.errors|join:', ' }}</div>
+                {% endif %}
+                {% if spatial_review_geometry_approval_form.non_field_errors %}
+                  <div class="alert alert-danger mt-2">{{ spatial_review_geometry_approval_form.non_field_errors|join:', ' }}</div>
+                {% endif %}
+                <button type="submit" class="btn btn-sm btn-success mt-2" data-spatial-approval-submit>
+                  Approve Selected Boundary
+                </button>
+              </fieldset>
+            </form>
+          {% endif %}
+        </aside>
+      </div>
+    </div>
+  </div>
+  <script src="{% static 'netbox_power_plant/spatial_review.js' %}"></script>
+{% else %}
+  <div class="card mb-4 spatial-review-map">
+    <div class="card-header">
+      <h2 class="card-title mb-0">Visual Spatial Review</h2>
+    </div>
+    <div class="card-body">
+      <div class="alert alert-secondary mb-0">
+        <strong>Spatial review map unavailable.</strong>
+        {{ spatial_review_map.unavailable_reason|default:'No spatial review map context was provided for this object.' }}
+      </div>
+    </div>
+  </div>
+{% endif %}

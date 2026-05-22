@@ -11,7 +11,7 @@ RACK_BOUNDARY_NODE_KINDS = {
 
 
 @dataclass(frozen=True)
-class RackDeliveryAssessment:
+class PowerHandoffAssessment:
     redundancy_group: object
     matched_domains: tuple
     is_compliant: bool
@@ -20,7 +20,7 @@ class RackDeliveryAssessment:
 
 
 @dataclass(frozen=True)
-class RackDeliverySummaryRow:
+class PowerHandoffSummaryRow:
     node: object
     terminal: object
     delivery_points: tuple
@@ -32,7 +32,7 @@ class RackDeliverySummaryRow:
 
 
 @dataclass(frozen=True)
-class RackDeliverySummary:
+class PowerHandoffSummary:
     power_system: object
     rows: tuple
     delivery_count: int
@@ -40,8 +40,8 @@ class RackDeliverySummary:
     noncompliant_count: int
 
 
-def build_rack_delivery_summary(power_system):
-    from netbox_power_plant.models import RackDeliveryPoint
+def build_power_handoff_summary(power_system):
+    from netbox_power_plant.models import PowerHandoffPoint
 
     snapshot = PowerGraphBuilder.build_for_power_system(
         power_system,
@@ -52,13 +52,13 @@ def build_rack_delivery_summary(power_system):
     domains_by_id = {domain.pk: domain for domain in domains}
     redundancy_groups = list(power_system.redundancy_groups.prefetch_related('power_domains').order_by('name'))
     delivery_points = list(
-        RackDeliveryPoint.objects.filter(power_system=power_system)
-        .select_related('rack', 'device', 'power_port', 'power_port__device', 'electrical_node', 'electrical_terminal', 'expected_redundancy_group')
+        PowerHandoffPoint.objects.filter(power_system=power_system)
+        .select_related('power_port', 'power_port__device', 'electrical_node', 'electrical_terminal', 'expected_redundancy_group')
         .order_by('name', 'feed_label', 'pk')
     )
     rows = []
 
-    for node, terminal in _iter_rack_delivery_terminals(snapshot):
+    for node, terminal in _iter_power_handoff_terminals(snapshot):
         upstream_domain_ids = _collect_upstream_domain_ids(snapshot, terminal)
         upstream_domains = tuple(
             domains_by_id[domain_id]
@@ -72,7 +72,7 @@ def build_rack_delivery_summary(power_system):
         )
         is_redundancy_compliant = all(assessment.is_compliant for assessment in assessments)
         assessment_summary = '; '.join(assessment.summary for assessment in assessments) if assessments else 'No redundancy groups defined.'
-        rows.append(RackDeliverySummaryRow(
+        rows.append(PowerHandoffSummaryRow(
             node=node,
             terminal=terminal,
             delivery_points=(),
@@ -87,7 +87,7 @@ def build_rack_delivery_summary(power_system):
 
     compliant_count = sum(1 for row in rows if row.is_redundancy_compliant)
     noncompliant_count = len(rows) - compliant_count
-    return RackDeliverySummary(
+    return PowerHandoffSummary(
         power_system=power_system,
         rows=tuple(rows),
         delivery_count=len(rows),
@@ -96,7 +96,7 @@ def build_rack_delivery_summary(power_system):
     )
 
 
-def _iter_rack_delivery_terminals(snapshot):
+def _iter_power_handoff_terminals(snapshot):
     terminals = sorted(
         snapshot.terminals_by_id.values(),
         key=lambda terminal: (terminal.node.name, terminal.position_index or 0, terminal.name),
@@ -146,7 +146,7 @@ def _assess_redundancy_group(group, upstream_domain_ids):
     else:
         summary = f'{group.name}: compliant.'
 
-    return RackDeliveryAssessment(
+    return PowerHandoffAssessment(
         redundancy_group=group,
         matched_domains=matched_domains,
         is_compliant=not finding_types,
@@ -187,10 +187,10 @@ def _attach_delivery_points(rows, delivery_points):
         delivery_points_for_row = tuple(row_delivery_points[index])
         assessment_summary = row.assessment_summary
         if delivery_points_for_row:
-            assessment_summary = f'{assessment_summary} Modeled delivery point present.'
+            assessment_summary = f'{assessment_summary} Modeled power handoff point present.'
         else:
             assessment_summary = f'{assessment_summary} Inferred from active topology only.'
-        updated_rows.append(RackDeliverySummaryRow(
+        updated_rows.append(PowerHandoffSummaryRow(
             node=row.node,
             terminal=row.terminal,
             delivery_points=delivery_points_for_row,
@@ -203,7 +203,7 @@ def _attach_delivery_points(rows, delivery_points):
 
     for delivery_point in unmatched_delivery_points:
         target_summary = _describe_delivery_point_target(delivery_point)
-        updated_rows.append(RackDeliverySummaryRow(
+        updated_rows.append(PowerHandoffSummaryRow(
             node=delivery_point.electrical_node,
             terminal=delivery_point.electrical_terminal,
             delivery_points=(delivery_point,),
@@ -211,17 +211,21 @@ def _attach_delivery_points(rows, delivery_points):
             distinct_path_count=0,
             assessments=(),
             is_redundancy_compliant=False,
-            assessment_summary=f'Modeled delivery point for {target_summary} has no matching active derived rack-boundary path.',
+            assessment_summary=f'Modeled power handoff point for {target_summary} has no matching active derived rack-boundary path.',
         ))
 
     return tuple(updated_rows)
 
 
 def _describe_delivery_point_target(delivery_point):
-    if delivery_point.rack is not None:
-        return str(delivery_point.rack)
-    if delivery_point.device is not None:
-        return str(delivery_point.device)
-    if delivery_point.power_port is not None:
-        return str(delivery_point.power_port)
-    return delivery_point.name
+    return str(delivery_point.power_port)
+
+
+# Backward-compatible names for imports and tests that still reference the
+# original rack-delivery service surface. The URL/file names remain stable while
+# the user-facing model language moves to Power Handoff.
+RackDeliveryAssessment = PowerHandoffAssessment
+RackDeliverySummaryRow = PowerHandoffSummaryRow
+RackDeliverySummary = PowerHandoffSummary
+build_rack_delivery_summary = build_power_handoff_summary
+_iter_rack_delivery_terminals = _iter_power_handoff_terminals

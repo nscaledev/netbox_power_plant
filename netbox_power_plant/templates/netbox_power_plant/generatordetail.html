@@ -1,0 +1,26 @@
+{% extends 'generic/object.html' %}
+{% load helpers %}
+
+{% block content %}
+  <div class="row">
+    <div class="col-md-8">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Generator Detail</h2>
+        </div>
+        <div class="card-body">
+          <table class="table table-hover attr-table mb-0">
+            <tr><th>Electrical Node</th><td>{{ object.node|linkify }}</td></tr>
+            <tr><th>Power System</th><td>{{ object.node.power_system|linkify }}</td></tr>
+            <tr><th>Site</th><td>{{ object.node.site|linkify }}</td></tr>
+            <tr><th>Fuel Type</th><td>{{ object.fuel_type|default:'—' }}</td></tr>
+            <tr><th>Runtime At Full Load</th><td>{% if object.runtime_at_full_load_hours %}{{ object.runtime_at_full_load_hours }} hours{% else %}—{% endif %}</td></tr>
+            <tr><th>Cooling Type</th><td>{{ object.cooling_type|default:'—' }}</td></tr>
+            <tr><th>ATS Group</th><td>{{ object.ats_group_id|default:'—' }}</td></tr>
+            <tr><th>Automatic Transfer Time</th><td>{% if object.automatic_transfer_time_ms %}{{ object.automatic_transfer_time_ms }} ms{% else %}—{% endif %}</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}

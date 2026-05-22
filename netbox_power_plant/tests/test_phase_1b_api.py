@@ -18,7 +18,7 @@ from netbox_power_plant.models import (
     InternalPowerBusAttachment,
     PowerDomain,
     PowerSystem,
-    RackDeliveryPoint,
+    PowerHandoffPoint,
 )
 
 
@@ -93,6 +93,7 @@ class Phase1BAPITestCase(APITestCase):
             rack=cls.rack,
         )
         cls.power_port = PowerPort.objects.create(device=cls.device, name='PSU A')
+        cls.power_port_b = PowerPort.objects.create(device=cls.device, name='PSU B')
         cls.internal_power_bus = InternalPowerBus.objects.create(
             name='Rack A1 Busbar',
             slug='rack-a1-busbar',
@@ -106,22 +107,22 @@ class Phase1BAPITestCase(APITestCase):
             power_port=cls.power_port,
             attachment_role=InternalPowerBusAttachmentRoleChoices.ROLE_LOAD,
         )
-        cls.delivery_point = RackDeliveryPoint.objects.create(
+        cls.delivery_point = PowerHandoffPoint.objects.create(
             name='Rack A Delivery',
             slug='rack-a-delivery',
             power_system=cls.power_system,
             electrical_node=destination_node,
             electrical_terminal=destination_terminal,
-            rack=cls.rack,
+            power_port=cls.power_port,
             feed_label='A-feed',
         )
-        cls.power_port_delivery_point = RackDeliveryPoint.objects.create(
+        cls.power_port_delivery_point = PowerHandoffPoint.objects.create(
             name='Power Port Delivery',
             slug='power-port-delivery',
             power_system=cls.power_system,
             electrical_node=destination_node,
             electrical_terminal=destination_terminal,
-            power_port=cls.power_port,
+            power_port=cls.power_port_b,
             feed_label='A-feed-port',
         )
     def test_api_root_includes_topology_endpoints(self):
@@ -131,7 +132,7 @@ class Phase1BAPITestCase(APITestCase):
         self.assertIn('electrical-nodes', response.data)
         self.assertIn('electrical-terminals', response.data)
         self.assertIn('electrical-segments', response.data)
-        self.assertIn('rack-delivery-points', response.data)
+        self.assertIn('power-handoff-points', response.data)
         self.assertIn('internal-power-buses', response.data)
         self.assertIn('internal-power-bus-attachments', response.data)
 
@@ -157,35 +158,33 @@ class Phase1BAPITestCase(APITestCase):
         self.assertEqual(response.data['to_terminal']['name'], 'Input A')
 
     def test_rack_delivery_point_detail_includes_boundary_objects(self):
-        self.add_permissions('netbox_power_plant.view_rackdeliverypoint')
+        self.add_permissions('netbox_power_plant.view_powerhandoffpoint')
         response = self.client.get(
-            reverse('plugins-api:netbox_power_plant-api:rackdeliverypoint-detail', kwargs={'pk': self.delivery_point.pk}),
+            reverse('plugins-api:netbox_power_plant-api:powerhandoffpoint-detail', kwargs={'pk': self.delivery_point.pk}),
             **self.header,
         )
 
         self.assertHttpStatus(response, 200)
         self.assertEqual(response.data['name'], self.delivery_point.name)
         self.assertEqual(response.data['feed_label'], 'A-feed')
-        self.assertEqual(response.data['rack']['name'], self.rack.name)
+        self.assertEqual(response.data['power_port']['name'], self.power_port.name)
         self.assertEqual(response.data['electrical_terminal']['name'], 'Input A')
 
     def test_rack_delivery_point_detail_includes_power_port_target(self):
-        self.add_permissions('netbox_power_plant.view_rackdeliverypoint')
+        self.add_permissions('netbox_power_plant.view_powerhandoffpoint')
         response = self.client.get(
-            reverse('plugins-api:netbox_power_plant-api:rackdeliverypoint-detail', kwargs={'pk': self.power_port_delivery_point.pk}),
+            reverse('plugins-api:netbox_power_plant-api:powerhandoffpoint-detail', kwargs={'pk': self.power_port_delivery_point.pk}),
             **self.header,
         )
 
         self.assertHttpStatus(response, 200)
-        self.assertIsNone(response.data['rack'])
-        self.assertIsNone(response.data['device'])
-        self.assertEqual(response.data['power_port']['name'], self.power_port.name)
+        self.assertEqual(response.data['power_port']['name'], self.power_port_b.name)
 
     def test_rack_delivery_point_list_filters_by_power_port(self):
-        self.add_permissions('netbox_power_plant.view_rackdeliverypoint')
+        self.add_permissions('netbox_power_plant.view_powerhandoffpoint')
         response = self.client.get(
-            reverse('plugins-api:netbox_power_plant-api:rackdeliverypoint-list'),
-            {'power_port_id': [self.power_port.pk]},
+            reverse('plugins-api:netbox_power_plant-api:powerhandoffpoint-list'),
+            {'power_port_id': [self.power_port_b.pk]},
             **self.header,
         )
 

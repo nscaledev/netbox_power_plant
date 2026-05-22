@@ -20,7 +20,7 @@ from netbox_power_plant.models import (
     InternalPowerBusAttachment,
     PowerDomain,
     PowerSystem,
-    RackDeliveryPoint,
+    PowerHandoffPoint,
     RedundancyGroup,
 )
 from netbox_power_plant.template_extensions import PowerPortPowerPlantContext
@@ -38,7 +38,7 @@ class Phase1BViewTestCase(TestCase):
         'netbox_power_plant.view_electricalsegment',
         'netbox_power_plant.view_internalpowerbus',
         'netbox_power_plant.view_internalpowerbusattachment',
-        'netbox_power_plant.view_rackdeliverypoint',
+        'netbox_power_plant.view_powerhandoffpoint',
     )
 
     @classmethod
@@ -164,13 +164,13 @@ class Phase1BViewTestCase(TestCase):
             power_port=cls.power_port,
             attachment_role=InternalPowerBusAttachmentRoleChoices.ROLE_LOAD,
         )
-        cls.delivery_point = RackDeliveryPoint.objects.create(
+        cls.delivery_point = PowerHandoffPoint.objects.create(
             name='Rack A Delivery',
             slug='rack-a-delivery',
             power_system=cls.power_system,
             electrical_node=cls.rack_node,
             electrical_terminal=cls.rack_terminal,
-            rack=cls.rack,
+            power_port=cls.power_port,
             expected_redundancy_group=cls.redundancy_group,
             feed_label='A-feed',
             delivery_role='primary',
@@ -183,7 +183,7 @@ class Phase1BViewTestCase(TestCase):
             ('plugins:netbox_power_plant:electricalsegment', self.segment.name),
             ('plugins:netbox_power_plant:internalpowerbus', self.internal_power_bus.name),
             ('plugins:netbox_power_plant:internalpowerbusattachment', self.bus_attachment.name),
-            ('plugins:netbox_power_plant:rackdeliverypoint', self.delivery_point.name),
+            ('plugins:netbox_power_plant:powerhandoffpoint', self.delivery_point.name),
         ):
             with self.subTest(url_name=url_name):
                 response = self.client.get(reverse(url_name, kwargs={'pk': self._resolve_pk(url_name)}))
@@ -213,17 +213,16 @@ class Phase1BViewTestCase(TestCase):
         self.assertTrue(ElectricalNode.objects.filter(slug='static-transfer-switch').exists())
 
     def test_rack_delivery_point_add_view_accepts_minimal_post(self):
-        self.add_permissions('netbox_power_plant.add_rackdeliverypoint', 'dcim.view_rack')
+        self.add_permissions('netbox_power_plant.add_powerhandoffpoint', 'dcim.view_powerport')
         response = self.client.post(
-            reverse('plugins:netbox_power_plant:rackdeliverypoint_add'),
+            reverse('plugins:netbox_power_plant:powerhandoffpoint_add'),
             post_data({
                 'name': 'Rack A Delivery Secondary',
                 'slug': 'rack-a-delivery-secondary',
                 'power_system': self.power_system,
                 'electrical_node': self.rack_node,
                 'electrical_terminal': self.rack_terminal,
-                'rack': self.rack,
-                'device': None,
+                'power_port': self.power_port_b,
                 'expected_redundancy_group': self.redundancy_group,
                 'delivery_role': 'redundant',
                 'feed_label': 'B-feed',
@@ -234,12 +233,12 @@ class Phase1BViewTestCase(TestCase):
         )
 
         self.assertHttpStatus(response, 302)
-        self.assertTrue(RackDeliveryPoint.objects.filter(slug='rack-a-delivery-secondary').exists())
+        self.assertTrue(PowerHandoffPoint.objects.filter(slug='rack-a-delivery-secondary').exists())
 
     def test_rack_delivery_point_add_view_accepts_power_port_target(self):
-        self.add_permissions('netbox_power_plant.add_rackdeliverypoint', 'dcim.view_powerport')
+        self.add_permissions('netbox_power_plant.add_powerhandoffpoint', 'dcim.view_powerport')
         response = self.client.post(
-            reverse('plugins:netbox_power_plant:rackdeliverypoint_add'),
+            reverse('plugins:netbox_power_plant:powerhandoffpoint_add'),
             post_data({
                 'name': 'Power Port Delivery',
                 'slug': 'power-port-delivery',
@@ -259,7 +258,7 @@ class Phase1BViewTestCase(TestCase):
         )
 
         self.assertHttpStatus(response, 302)
-        self.assertTrue(RackDeliveryPoint.objects.filter(slug='power-port-delivery', power_port=self.power_port).exists())
+        self.assertTrue(PowerHandoffPoint.objects.filter(slug='power-port-delivery', power_port=self.power_port).exists())
 
     def test_internal_power_bus_attachment_add_view_accepts_minimal_post(self):
         self.add_permissions('netbox_power_plant.add_internalpowerbusattachment', 'dcim.view_powerport')
@@ -282,7 +281,7 @@ class Phase1BViewTestCase(TestCase):
         self.assertTrue(InternalPowerBusAttachment.objects.filter(slug='rack-a1-psu-a-source-attachment').exists())
 
     def test_power_port_template_extension_renders_power_plant_context(self):
-        delivery_point = RackDeliveryPoint.objects.create(
+        delivery_point = PowerHandoffPoint.objects.create(
             name='Power Port Extension Delivery',
             slug='power-port-extension-delivery',
             power_system=self.power_system,
@@ -303,7 +302,7 @@ class Phase1BViewTestCase(TestCase):
         )
 
         self.assertHttpStatus(response, 200)
-        self.assertContains(response, 'Rack Delivery Summary')
+        self.assertContains(response, 'Power Handoff Summary')
         self.assertContains(response, self.rack_node.name)
         self.assertContains(response, self.rack_terminal.name)
         self.assertContains(response, self.redundancy_group.name)
@@ -320,6 +319,6 @@ class Phase1BViewTestCase(TestCase):
             return self.internal_power_bus.pk
         if url_name.endswith('internalpowerbusattachment'):
             return self.bus_attachment.pk
-        if url_name.endswith('rackdeliverypoint'):
+        if url_name.endswith('powerhandoffpoint'):
             return self.delivery_point.pk
         return self.segment.pk

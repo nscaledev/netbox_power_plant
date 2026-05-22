@@ -1,0 +1,43 @@
+{% extends 'generic/object.html' %}
+{% load helpers %}
+
+{% block content %}
+  <div class="row">
+    <div class="col-md-8">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Finding Details</h2>
+        </div>
+        <div class="card-body">
+          <table class="table table-hover attr-table mb-0">
+            <tr><th>Validation Run</th><td>{{ object.run|linkify }}</td></tr>
+            <tr><th>Power System</th><td>{{ object.power_system|linkify }}</td></tr>
+            <tr><th>Type</th><td>{{ object.finding_type }}</td></tr>
+            <tr><th>Severity</th><td>{{ object.get_severity_display }}</td></tr>
+            <tr><th>Status</th><td>{{ object.get_status_display }}</td></tr>
+            <tr><th>Assigned Object Type</th><td>{{ object.assigned_object_type|default:'—' }}</td></tr>
+            <tr><th>Assigned Object</th><td>{{ object.assigned_object|linkify|default:'—' }}</td></tr>
+            <tr><th>Assigned To</th><td>{{ object.assigned_to|default:'—' }}</td></tr>
+            <tr><th>Suppressed Until</th><td>{{ object.suppressed_until|default:'—' }}</td></tr>
+            <tr><th>Resolved At</th><td>{{ object.resolved_at|default:'—' }}</td></tr>
+            <tr><th>First Seen</th><td>{{ object.first_seen|default:'—' }}</td></tr>
+            <tr><th>Last Seen</th><td>{{ object.last_seen|default:'—' }}</td></tr>
+            <tr><th>Fingerprint</th><td><code>{{ object.fingerprint }}</code></td></tr>
+            <tr><th>Message</th><td>{{ object.message }}</td></tr>
+            <tr><th>Description</th><td>{{ object.description|default:'—' }}</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Details</h2>
+        </div>
+        <div class="card-body">
+          <pre class="mb-0">{{ object.details|default:'{}' }}</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}

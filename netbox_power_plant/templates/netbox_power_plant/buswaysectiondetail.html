@@ -1,0 +1,26 @@
+{% extends 'generic/object.html' %}
+{% load helpers %}
+
+{% block content %}
+  <div class="row">
+    <div class="col-md-8">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Busway Section Detail</h2>
+        </div>
+        <div class="card-body">
+          <table class="table table-hover attr-table mb-0">
+            <tr><th>Electrical Node</th><td>{{ object.node|linkify }}</td></tr>
+            <tr><th>Power System</th><td>{{ object.node.power_system|linkify }}</td></tr>
+            <tr><th>Site</th><td>{{ object.node.site|linkify }}</td></tr>
+            <tr><th>Busway System</th><td>{{ object.busway_system|linkify }}</td></tr>
+            <tr><th>Section Index</th><td>{{ object.section_index|default:'—' }}</td></tr>
+            <tr><th>Rated Ampacity</th><td>{% if object.rated_ampacity_a %}{{ object.rated_ampacity_a }} A{% else %}—{% endif %}</td></tr>
+            <tr><th>Plug Count</th><td>{{ object.plug_count|default:'—' }}</td></tr>
+            <tr><th>Plug Spacing</th><td>{% if object.plug_spacing_m %}{{ object.plug_spacing_m }} m{% else %}—{% endif %}</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}

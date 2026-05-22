@@ -2,60 +2,79 @@ from decimal import Decimal
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from django.test import TestCase, override_settings
+from django.test import TestCase
 
-from dcim.models import Location, Rack, Site
+from dcim.models import Device, DeviceRole, DeviceType, Location, Manufacturer, PowerPort, Rack, Site
 
 from netbox_power_plant.choices import NodeKindChoices, PlacementScopeChoices, RedundancyTopologyChoices, SupplyTypeChoices, TerminalDirectionChoices
-from netbox_power_plant.models import ElectricalNode, ElectricalNodePlacement, ElectricalSegment, ElectricalTerminal, PowerDomain, PowerSystem, RackDeliveryPoint, RedundancyGroup
+from netbox_power_plant.models import ElectricalNode, ElectricalNodePlacement, ElectricalSegment, ElectricalTerminal, PowerDomain, PowerSystem, PowerHandoffPoint, RedundancyGroup
 from netbox_power_plant.services.layout import build_power_system_layout_view
 
 
-class FakeFloorplanQuerySet:
-    def __init__(self, floorplans):
-        self.floorplans = list(floorplans)
+class FakeQuerySet:
+    def __init__(self, objects):
+        self.objects = list(objects)
+
+    def select_related(self, *_args):
+        return self
 
     def order_by(self, *_args):
         return self
 
     def first(self):
-        return self.floorplans[0] if self.floorplans else None
+        return self.objects[0] if self.objects else None
+
+    def __iter__(self):
+        return iter(self.objects)
 
 
-class FakeFloorplanManager:
-    def __init__(self, floorplans):
-        self.floorplans = list(floorplans)
+class FakeManager:
+    def __init__(self, objects):
+        self.objects = list(objects)
 
     def filter(self, **kwargs):
-        matches = []
-        for floorplan in self.floorplans:
-            if all(getattr(floorplan, field_name) == value for field_name, value in kwargs.items()):
-                matches.append(floorplan)
-        return FakeFloorplanQuerySet(matches)
+        return FakeQuerySet([
+            obj
+            for obj in self.objects
+            if all(_matches(obj, field_name, value) for field_name, value in kwargs.items())
+        ])
 
 
-class FakeFloorplan(SimpleNamespace):
+class FakeSpatialFrame(SimpleNamespace):
     def __str__(self):
-        return f'Floorplan {self.pk}'
+        return self.name
 
 
-def make_floorplan_module(*floorplans):
-    floorplan_model = type('FakeFloorplanModel', (), {'objects': FakeFloorplanManager(floorplans)})
-    return SimpleNamespace(Floorplan=floorplan_model)
+class FakeSpatialPlacement(SimpleNamespace):
+    def __str__(self):
+        return self.name
 
 
-def make_floorplan(pk, *, site=None, location=None, canvas=None):
-    return FakeFloorplan(
+def make_spatial_models(*, frames=(), placements=()):
+    frame_model = type('FakeSpatialFrameModel', (), {'objects': FakeManager(frames)})
+    placement_model = type('FakeSpatialPlacementModel', (), {'objects': FakeManager(placements)})
+    return frame_model, placement_model, None
+
+
+def make_spatial_frame(pk, *, site=None, location=None):
+    return FakeSpatialFrame(
         pk=pk,
+        name=f'Spatial Underlay {pk}',
         site=site,
         location=location,
         assigned_image=SimpleNamespace(pk=pk + 1000),
         width=Decimal('42.50'),
         height=Decimal('18.25'),
         measurement_unit='m',
-        canvas=canvas or {},
-        get_absolute_url=lambda: f'/plugins/floorplan/{pk}/',
+        get_absolute_url=lambda: f'/plugins/power-plant/spatial-frames/{pk}/',
     )
+
+
+def _matches(obj, field_name, value):
+    if field_name.endswith('__isnull'):
+        attr_name = field_name.removesuffix('__isnull')
+        return (getattr(obj, attr_name, None) is None) is value
+    return getattr(obj, field_name, None) == value
 
 
 class PowerSystemLayoutServiceTestCase(TestCase):
@@ -157,13 +176,25 @@ class PowerSystemLayoutServiceTestCase(TestCase):
             path_state='active',
         )
         cls.rack = Rack.objects.create(name='Rack A1', site=cls.site, location=cls.location)
-        cls.delivery_point = RackDeliveryPoint.objects.create(
+        cls.manufacturer = Manufacturer.objects.create(name='Layout Manufacturer', slug='layout-manufacturer')
+        cls.device_type = DeviceType.objects.create(model='Layout Device', slug='layout-device', manufacturer=cls.manufacturer)
+        cls.device_role = DeviceRole.objects.create(name='Layout Role', slug='layout-role', color='ff0000')
+        cls.device = Device.objects.create(
+            name='Layout Device A',
+            device_type=cls.device_type,
+            role=cls.device_role,
+            site=cls.site,
+            location=cls.location,
+            rack=cls.rack,
+        )
+        cls.power_port = PowerPort.objects.create(device=cls.device, name='PSU A')
+        cls.delivery_point = PowerHandoffPoint.objects.create(
             name='Rack A Delivery',
             slug='rack-a-delivery',
             power_system=cls.power_system,
             electrical_node=cls.boundary_node,
             electrical_terminal=cls.boundary_terminal,
-            rack=cls.rack,
+            power_port=cls.power_port,
             expected_redundancy_group=cls.redundancy_group,
             feed_label='A-feed',
         )
@@ -181,46 +212,53 @@ class PowerSystemLayoutServiceTestCase(TestCase):
             label_mode='name_kind',
         )
 
-    @override_settings(PLUGINS=['netbox_power_plant'])
-    def test_returns_unavailable_layout_state_when_floorplan_plugin_is_disabled(self):
-        layout = build_power_system_layout_view(self.power_system)
-
-        self.assertFalse(layout.has_floorplan)
-        self.assertIsNotNone(layout.floorplan_context.availability.reason)
-        self.assertIn('floorplan plugin', layout.floorplan_context.availability.reason.lower())
-        self.assertEqual(len(layout.placements), 1)
-
-    @override_settings(PLUGINS=['netbox_floorplan', 'netbox_power_plant'])
-    def test_builds_layout_from_floorplan_context_placements_and_delivery_points(self):
-        floorplan_module = make_floorplan_module(make_floorplan(
-            101,
-            site=self.site,
-            location=self.location,
-            canvas={
-                'objects': [
-                    {
-                        'type': 'rect',
-                        'left': '15',
-                        'top': '25',
-                        'custom_meta': {
-                            'object_type': 'rack',
-                            'object_id': str(self.rack.pk),
-                            'object_name': self.rack.name,
-                        },
-                    }
-                ]
-            },
-        ))
-
-        with patch('netbox_power_plant.services.floorplan.import_module', return_value=floorplan_module):
+    def test_returns_unavailable_layout_state_until_spatial_models_exist(self):
+        with patch(
+            'netbox_power_plant.services.spatial._load_spatial_models',
+            return_value=(None, None, 'Native spatial models could not be imported'),
+        ):
             layout = build_power_system_layout_view(self.power_system)
 
-        self.assertTrue(layout.has_floorplan)
-        self.assertEqual(layout.floorplan_context.floorplan_id, 101)
+        self.assertFalse(layout.has_spatial_frame)
+        self.assertIsNotNone(layout.spatial_context.availability.reason)
+        self.assertIn('spatial models', layout.spatial_context.availability.reason.lower())
         self.assertEqual(len(layout.placements), 1)
-        self.assertEqual(layout.placements[0].placement.pk, self.placement.pk)
+
+    def test_builds_layout_from_spatial_context_placements_and_delivery_points(self):
+        spatial_frame = make_spatial_frame(101, site=self.site, location=self.location)
+        rack_placement = FakeSpatialPlacement(
+            pk=201,
+            name='Rack A1 Placement',
+            frame=spatial_frame,
+            rack=self.rack,
+            x='15',
+            y='25',
+            z_index=1,
+        )
+        node_placement = FakeSpatialPlacement(
+            pk=202,
+            name='Row PDU Placement',
+            frame=spatial_frame,
+            electrical_node=self.pdu_node,
+            x='10',
+            y='20',
+            symbol_kind='distribution',
+            label_mode='name_kind',
+            z_index=2,
+        )
+
+        with patch(
+            'netbox_power_plant.services.spatial._load_spatial_models',
+            return_value=make_spatial_models(frames=(spatial_frame,), placements=(rack_placement, node_placement)),
+        ):
+            layout = build_power_system_layout_view(self.power_system)
+
+        self.assertTrue(layout.has_spatial_frame)
+        self.assertEqual(layout.spatial_context.spatial_frame_id, 101)
+        self.assertEqual(len(layout.placements), 1)
+        self.assertEqual(layout.placements[0].placement.pk, node_placement.pk)
         self.assertEqual(len(layout.delivery_overlays), 1)
-        self.assertTrue(layout.delivery_overlays[0].is_mapped_on_floorplan)
+        self.assertTrue(layout.delivery_overlays[0].is_mapped_on_spatial)
         self.assertEqual(layout.delivery_overlays[0].target_name, self.rack.name)
         self.assertEqual(layout.mapped_delivery_count, 1)
         self.assertEqual(len(layout.mapped_assets), 1)

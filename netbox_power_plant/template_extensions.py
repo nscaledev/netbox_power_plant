@@ -1,6 +1,6 @@
 from netbox.plugins.templates import PluginTemplateExtension
 
-from .models import InternalPowerBusAttachment, RackDeliveryPoint
+from .models import InternalPowerBusAttachment, PowerHandoffPoint
 
 
 class PowerPortPowerPlantContext(PluginTemplateExtension):
@@ -9,7 +9,7 @@ class PowerPortPowerPlantContext(PluginTemplateExtension):
     def right_page(self):
         power_port = self.context['object']
         delivery_points = tuple(
-            RackDeliveryPoint.objects.filter(power_port=power_port)
+            PowerHandoffPoint.objects.filter(power_port=power_port)
             .select_related('power_system', 'electrical_node', 'electrical_terminal', 'expected_redundancy_group')
             .order_by('power_system__name', 'name')
         )

@@ -15,6 +15,25 @@ The plugin must satisfy two goals:
 1. provide a data model that is actually expressive enough for real modern power-train design, including redundancy and templated repetition at scale;
 2. provide UI and automation workflows that let operators define those designs once and stamp them into halls/rows/racks without hand-creating thousands of objects.
 
+### Current implementation status
+
+This document remains the broad product and architecture proposal. It includes
+future-state models and workflows that are not implemented yet.
+
+The current plugin direction is narrower and explicit:
+
+- `dcim.PowerPort` is the only NetBox-native power boundary.
+- `PowerHandoffPoint` is the plugin-owned object that terminates facility
+  power on a real `dcim.PowerPort`.
+- `InternalPowerBusAttachment` also targets a real `dcim.PowerPort`.
+- `RackDeliveryPoint` and `PowerPortDelivery` were earlier names/designs and
+  should not be used for new work.
+- Physical placement is plugin-native through `SpatialFrame` and
+  `SpatialPlacement`; there is no `netbox_floorplan` dependency.
+- Large-scale template stamping, capacity reservation, protection coordination,
+  durable path snapshots, import/diff jobs, and advanced reporting remain
+  aspirational unless a later status note says otherwise.
+
 ---
 
 ## 2. Non-Goals for v1
@@ -100,7 +119,19 @@ The plugin should not re-implement:
 - power ports
 - cables
 
-The plugin should re-implement power panels, power feeds, power outlets, and power cabling as plugin-owned electrical nodes, terminals, segments, rack delivery points, and internal bus attachments. The only native NetBox power construct at the boundary is `dcim.PowerPort`.
+The plugin should re-implement power panels, power feeds, power outlets, and
+power cabling as plugin-owned electrical nodes, terminals, segments,
+`PowerHandoffPoint` records, and internal bus attachments. The only native
+NetBox power construct at the boundary is `dcim.PowerPort`.
+
+Current boundary rule:
+
+- use `PowerHandoffPoint` for plant-to-NetBox handoff
+- `PowerHandoffPoint` must target `dcim.PowerPort`
+- do not terminate plant circuits directly on racks, devices, modules, or
+  arbitrary generic foreign keys
+- use `InternalPowerBusAttachment` for plugin-owned internal buses that attach
+  to device/module power ports
 
 ### 4.4 Keep heavy logic out of forms and views
 
@@ -119,6 +150,17 @@ Think of Django models as storage contracts, not the whole brain.
 ---
 
 ## 5. High-Level Domain Model
+
+Implementation note:
+
+- The active branch currently uses a flatter module layout than the package
+  layout sketched below.
+- Implemented model slices include the organizational backbone, electrical
+  topology backbone, `PowerHandoffPoint`, `SpatialFrame`, `SpatialPlacement`,
+  `InternalPowerBus`, and `InternalPowerBusAttachment`.
+- Type-specific facility equipment detail models, protection/capacity models,
+  template models, import/diff jobs, and persistent validation result models
+  remain aspirational.
 
 ## 5.1 Core plugin apps
 
@@ -564,33 +606,27 @@ Key fields:
 
 These are crucial. They prevent the plugin from fighting NetBox core.
 
-### `RackDeliveryPoint`
+### `PowerHandoffPoint`
 
-Represents the plugin-side endpoint where facility distribution lands at a rack boundary.
+Represents the plugin-side endpoint where facility distribution terminates on a
+NetBox-native power port.
 
 Key fields:
 
-- `rack` FK
 - `name`
-- `delivery_type` (`whip`, `tap_off`, `busway_drop`, `rack_feed`, `dc_feed`)
+- `handoff_type` or equivalent classification (`whip`, `tap_off`, `busway_drop`,
+  `rack_feed`, `dc_feed`)
 - `power_domain` FK
 - `input_terminal` FK to `ElectricalTerminal`
-- `expected_feed_count`
-
-### `PowerPortDelivery`
-
-Maps a plugin boundary object directly to a device/module power port.
-
-Key fields:
-
-- `rack_delivery_point` FK or equivalent plugin-owned boundary object
 - `power_port` FK to native NetBox `dcim.PowerPort`
-- `binding_path_role`
-- `priority`
+- `expected_feed_count`
 
 Design note:
 
 - Device power ports are the single native handoff. Panel/feed/outlet behavior stays in the plugin graph so operators can replace NetBox-native power constructs without splitting authority.
+- Rack-level intent can be represented by unresolved plant topology, naming, or
+  staging data, but it is not considered terminated until a `PowerHandoffPoint`
+  targets a concrete `dcim.PowerPort`.
 
 ---
 
@@ -744,7 +780,7 @@ Important relationship patterns:
 - `ElectricalNode / Segment -> ProtectionElement`
 - `Template -> TemplateNode / TemplateTerminal / TemplateSegment`
 - `DesignInstance -> instantiated nodes/segments`
-- `RackDeliveryPoint -> NetBox bindings`
+- `PowerHandoffPoint -> dcim.PowerPort`
 
 ## 6.2 Generic relations
 
@@ -896,7 +932,9 @@ Power Plant
     Electrical Nodes
     Electrical Segments
     Protection Elements
-    Rack Delivery Points
+    Power Handoff Points
+    Spatial Frames
+    Spatial Placements
 
   Templates
     Architecture Templates
@@ -944,14 +982,14 @@ Capabilities:
 - start from any node
 - walk upstream/downstream
 - highlight domains
-- show derived paths to rack boundary
+- show derived paths to power-port handoff boundary
 - collapse repeated template-derived subtrees
 
-### Rack Delivery view
+### Power Handoff view
 
-Per rack:
+Per handoff scope:
 
-- plugin-side delivery points
+- plugin-side handoff points
 - native NetBox power-port handoffs
 - plugin-owned rack PDUs / terminals / internal bus attachments
 - A/B path status
@@ -1005,7 +1043,9 @@ Priority REST resources:
 - `/api/plugins/powerplant/electrical-terminals/`
 - `/api/plugins/powerplant/electrical-segments/`
 - `/api/plugins/powerplant/protection-elements/`
-- `/api/plugins/powerplant/rack-delivery-points/`
+- `/api/plugins/powerplant/power-handoff-points/`
+- `/api/plugins/powerplant/spatial-frames/`
+- `/api/plugins/powerplant/spatial-placements/`
 - `/api/plugins/powerplant/templates/`
 - `/api/plugins/powerplant/instantiation-runs/`
 - `/api/plugins/powerplant/validation-results/`
@@ -1110,7 +1150,7 @@ Implement these first because they deliver immediate value.
 - no orphan terminals on active nodes
 - no active segments into missing terminals
 - no invalid directionality pairings
-- no impossible source-less rack delivery point
+- no impossible source-less power handoff point
 
 ### Compatibility rules
 
@@ -1187,7 +1227,8 @@ Add global search indexes for:
 
 - power systems
 - electrical nodes
-- rack delivery points
+- power handoff points
+- spatial frames and placements
 - templates
 - validation results
 
@@ -1209,8 +1250,9 @@ Every primary model should support filtering by:
 Initial reports:
 
 - capacity by hall/domain
-- racks missing redundant feed
-- orphaned rack delivery points
+- device power ports missing required handoff
+- orphaned power handoff points
+- spatial placements missing frame context
 - segments without protection metadata
 - template instantiations with drift
 - brownfield objects missing placement metadata
@@ -1225,7 +1267,7 @@ Suggested role partition:
 
 - **Power design admin**: full model/template authority
 - **Capacity planner**: reservation and reporting authority
-- **DCIM operator**: rack boundary and binding authority
+- **DCIM operator**: power-port boundary and binding authority
 - **Read-only consumers**: topology/report visibility only
 
 Guardrails:
@@ -1274,19 +1316,37 @@ Status:
 - an initial validation service now covers terminal supply compatibility and basic segment topology checks
 - a first graph traversal service now builds active-topology snapshots, upstream/downstream reachability, isolated-node detection, orphan-terminal detection, and directed-cycle detection
 - graph-based topology checks now report missing terminals, orphan terminals, isolated nodes, and directed cycles for active topologies
-- redundancy checks now evaluate derived rack-boundary delivery against redundancy-group path-count and domain-isolation requirements
-- one rack-delivery summary page now reports derived rack-boundary endpoints, upstream domains, and redundancy posture per power system
+- redundancy checks now evaluate derived boundary delivery against redundancy-group path-count and domain-isolation requirements
+- an early boundary summary page reports derived handoff endpoints, upstream domains, and redundancy posture per power system
 - standard CRUD views, routes, navigation entries, detail templates, filtersets, filter forms, tables, and REST endpoints have been added for the topology models
 - focused model, view, API, graph, and validation tests are in place and included in the fast test lane
 - phase 1B deliverables are now complete
 
-## Phase 2: facility detail and rack boundary
+## Phase 1C: power-port handoff and native spatial placement in progress
+
+- `PowerHandoffPoint`
+- `SpatialFrame`
+- `SpatialPlacement`
+- `InternalPowerBus`
+- `InternalPowerBusAttachment`
+
+Status:
+
+- the current direction is power-port termination only
+- the plugin-native spatial model supersedes the previous floorplan integration
+  plan
+- documentation has been updated ahead of broader workflow polish
+- path resolution, capacity/reservation, protection coordination, and large-scale
+  import/stamping remain future work
+
+## Phase 2: facility detail and power-port boundary
 
 - type-specific detail models
 - `ProtectionElement`
-- `RackDeliveryPoint`
-- NetBox bindings
-- rack summary views
+- `PowerHandoffPoint`
+- `SpatialFrame` and `SpatialPlacement`
+- NetBox `dcim.PowerPort` bindings
+- handoff summary views
 
 ## Phase 3: templates and scale workflows
 
@@ -1400,21 +1460,23 @@ Implement in this order:
 5. `ElectricalTerminal`
 6. `ElectricalSegment`
 7. `ProtectionElement`
-8. `RackDeliveryPoint`
-9. `InternalPowerBus`
-10. `InternalPowerBusAttachment`
-11. `PowerArchitectureTemplate`
-12. `TemplateNode`
-13. `TemplateTerminal`
-14. `TemplateSegment`
-15. `TemplatePlacementRule`
-16. `NamingPolicy`
-17. `InstantiationRun`
-18. `InstantiationArtifact`
-19. `ValidationRule`
-20. `ValidationResult`
-21. `ScopeSummary`
-22. `PathSnapshot`
+8. `PowerHandoffPoint`
+9. `SpatialFrame`
+10. `SpatialPlacement`
+11. `InternalPowerBus`
+12. `InternalPowerBusAttachment`
+13. `PowerArchitectureTemplate`
+14. `TemplateNode`
+15. `TemplateTerminal`
+16. `TemplateSegment`
+17. `TemplatePlacementRule`
+18. `NamingPolicy`
+19. `InstantiationRun`
+20. `InstantiationArtifact`
+21. `ValidationRule`
+22. `ValidationResult`
+23. `ScopeSummary`
+24. `PathSnapshot`
 
 This sequence gives usable topology early, then boundary integration, then scale workflows, then operational reporting.
 
@@ -1448,11 +1510,11 @@ Completed so far in this milestone:
 - one validation service for basic terminal and segment consistency rules
 - one service module for graph traversal across the active topology backbone
 - expanded topology validation coverage for missing terminals, orphan terminals, isolated nodes, and directed cycles
-- expanded redundancy validation coverage for rack-boundary delivery path count and domain isolation
+- expanded redundancy validation coverage for boundary delivery path count and domain isolation
 - standard list/detail/add/edit/delete views for the topology backbone
 - filtersets and tables for the topology backbone
 - REST serializers/viewsets for the topology backbone
-- one rack-delivery summary page for derived rack-boundary coverage and redundancy posture
+- one boundary summary page for derived power handoff coverage and redundancy posture
 - focused model/view/API/graph/validation tests covering the delivered topology slice
 
 That follow-on milestone will move the plugin from organizational scoping into actual facility-topology modeling while keeping the first delivered slice stable.

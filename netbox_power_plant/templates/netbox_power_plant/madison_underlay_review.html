@@ -1,0 +1,691 @@
+{% extends 'generic/_base.html' %}
+{% load helpers %}
+
+{% block title %}Madison Underlay Review{% endblock %}
+
+{% block content %}
+  <div class="d-flex justify-content-between align-items-start mb-3">
+    <div>
+      <h1 class="h2 mb-1">Madison Underlay Review</h1>
+      <div class="text-secondary">
+        {% if summary.site_found %}
+          Site {{ summary.site|linkify }}
+        {% else %}
+          Site slug <code>{{ summary.site_slug }}</code>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  {% if can_ingest_cad_underlay %}
+    <div class="card mb-4">
+      <div class="card-header">
+        <h2 class="card-title">
+          {% if summary.cad_underlay %}Refresh CAD Package{% else %}Ingest CAD Package{% endif %}
+        </h2>
+      </div>
+      <div class="card-body">
+        <form method="post" enctype="multipart/form-data">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="ingest_cad_underlay">
+          <div class="row g-3">
+            <div class="col-md-3">
+              <label class="form-label" for="{{ ingest_form.site_slug.id_for_label }}">{{ ingest_form.site_slug.label }}</label>
+              {{ ingest_form.site_slug }}
+              {% if ingest_form.site_slug.help_text %}<div class="form-hint">{{ ingest_form.site_slug.help_text }}</div>{% endif %}
+              {% if ingest_form.site_slug.errors %}<div class="text-danger small">{{ ingest_form.site_slug.errors|join:', ' }}</div>{% endif %}
+            </div>
+            <div class="col-md-3">
+              <label class="form-label" for="{{ ingest_form.site_name.id_for_label }}">{{ ingest_form.site_name.label }}</label>
+              {{ ingest_form.site_name }}
+              {% if ingest_form.site_name.help_text %}<div class="form-hint">{{ ingest_form.site_name.help_text }}</div>{% endif %}
+              {% if ingest_form.site_name.errors %}<div class="text-danger small">{{ ingest_form.site_name.errors|join:', ' }}</div>{% endif %}
+            </div>
+            <div class="col-md-4">
+              <label class="form-label" for="{{ ingest_form.cad_package.id_for_label }}">{{ ingest_form.cad_package.label }}</label>
+              {{ ingest_form.cad_package }}
+              {% if ingest_form.cad_package.help_text %}<div class="form-hint">{{ ingest_form.cad_package.help_text }}</div>{% endif %}
+              {% if ingest_form.cad_package.errors %}<div class="text-danger small">{{ ingest_form.cad_package.errors|join:', ' }}</div>{% endif %}
+            </div>
+            <div class="col-md-2">
+              <label class="form-label" for="{{ ingest_form.source_units.id_for_label }}">{{ ingest_form.source_units.label }}</label>
+              {{ ingest_form.source_units }}
+              {% if ingest_form.source_units.help_text %}<div class="form-hint">{{ ingest_form.source_units.help_text }}</div>{% endif %}
+              {% if ingest_form.source_units.errors %}<div class="text-danger small">{{ ingest_form.source_units.errors|join:', ' }}</div>{% endif %}
+            </div>
+            <div class="col-12">
+              <label class="form-check">
+                {{ ingest_form.confirm }}
+                <span class="form-check-label">{{ ingest_form.confirm.label }}</span>
+              </label>
+              {% if ingest_form.confirm.errors %}<div class="text-danger small">{{ ingest_form.confirm.errors|join:', ' }}</div>{% endif %}
+            </div>
+          </div>
+          {% if ingest_form.non_field_errors %}
+            <div class="alert alert-danger mt-3">{{ ingest_form.non_field_errors|join:', ' }}</div>
+          {% endif %}
+          <div class="mt-3">
+            <button type="submit" class="btn btn-primary">
+              {% if summary.cad_underlay %}Refresh CAD Package{% else %}Ingest CAD Package{% endif %}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  {% endif %}
+
+  {% if not summary.site_found %}
+    <div class="alert alert-info">
+      No site with slug <code>{{ summary.site_slug }}</code> exists yet.
+    </div>
+  {% else %}
+    <div class="row row-deck mb-4">
+      <div class="col-sm-6 col-xl-3">
+        <div class="card">
+          <div class="card-body">
+            <div class="text-secondary text-uppercase small">Source Docs</div>
+            <div class="display-6">{{ summary.source_document_count }}</div>
+            <div class="small text-secondary">
+              {{ summary.source_sheet_count }} sheet{{ summary.source_sheet_count|pluralize }},
+              {{ summary.source_layer_count }} layer{{ summary.source_layer_count|pluralize }}
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-sm-6 col-xl-3">
+        <div class="card">
+          <div class="card-body">
+            <div class="text-secondary text-uppercase small">Spatial Scope</div>
+            <div class="display-6">{{ summary.spatial_frame_count }}</div>
+            <div class="small text-secondary">{{ summary.physical_space_count }} physical space{{ summary.physical_space_count|pluralize }}</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-sm-6 col-xl-3">
+        <div class="card">
+          <div class="card-body">
+            <div class="text-secondary text-uppercase small">Rack Footprints</div>
+            <div class="display-6">{{ summary.rack_footprint_count }}</div>
+            <div class="small text-secondary">{{ summary.rack_binding_count }} Rack binding{{ summary.rack_binding_count|pluralize }}</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-sm-6 col-xl-3">
+        <div class="card">
+          <div class="card-body">
+            <div class="text-secondary text-uppercase small">Placement</div>
+            <div class="display-6">{{ summary.placed_element_count }}</div>
+            <div class="small text-secondary">{{ summary.unplaced_element_count }} unplaced of {{ summary.physical_element_count }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {% include 'netbox_power_plant/includes/spatial_review_map.html' %}
+
+    {% if summary.cad_underlay %}
+      <div class="card mb-4">
+        <div class="card-header">
+          <h2 class="card-title">CAD Site Underlay</h2>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-4">
+              <div class="text-secondary text-uppercase small">Calibration</div>
+              <div>
+                {% if summary.cad_underlay.approved %}
+                  Approved
+                {% elif summary.cad_underlay.calibration_status %}
+                  {{ summary.cad_underlay.calibration_status|title }}
+                {% else %}
+                  Review pending
+                {% endif %}
+              </div>
+              {% if summary.cad_underlay.source_document %}
+                <div class="small text-secondary">{{ summary.cad_underlay.source_document|linkify }}</div>
+              {% endif %}
+              {% if summary.cad_underlay.approved_at %}
+                <div class="small text-secondary">Approved by {{ summary.cad_underlay.approved_by }} at {{ summary.cad_underlay.approved_at }}</div>
+              {% endif %}
+            </div>
+            <div class="col-md-4">
+              <div class="text-secondary text-uppercase small">Site Coordinate Plane</div>
+              {% if summary.cad_underlay.site_frame %}
+                <div>{{ summary.cad_underlay.site_frame|linkify }}</div>
+                <div class="small text-secondary">
+                  {{ summary.cad_underlay.site_frame.width }} x {{ summary.cad_underlay.site_frame.height }}
+                  {{ summary.cad_underlay.site_frame.units }}
+                </div>
+              {% else %}
+                <div class="text-secondary">Not materialized</div>
+              {% endif %}
+            </div>
+            <div class="col-md-4">
+              <div class="text-secondary text-uppercase small">Current Building</div>
+              {% if summary.cad_underlay.current_building_space %}
+                <div>{{ summary.cad_underlay.current_building_space|linkify }}</div>
+                {% if summary.cad_underlay.current_building_placement %}
+                  <div class="small text-secondary">Origin {{ summary.cad_underlay.current_building_placement.x }}, {{ summary.cad_underlay.current_building_placement.y }}</div>
+                {% endif %}
+              {% else %}
+                <div class="text-secondary">Not materialized</div>
+              {% endif %}
+            </div>
+          </div>
+          {% if summary.cad_underlay.warnings %}
+            <hr>
+            <ul class="mb-0">
+              {% for warning in summary.cad_underlay.warnings %}
+                <li>{{ warning }}</li>
+              {% endfor %}
+            </ul>
+          {% endif %}
+          {% if summary.cad_underlay.rendered_underlay_image_uri %}
+            <hr>
+            <img src="{{ summary.cad_underlay.rendered_underlay_image_uri }}" alt="Rendered Madison CAD site underlay" class="img-fluid border">
+          {% endif %}
+          {% if can_approve_cad_underlay and not summary.cad_underlay.approved %}
+            <hr>
+            <form method="post">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="approve_cad_underlay">
+              <input type="hidden" name="site" value="{{ summary.site_slug }}">
+              <div class="row g-3">
+                <div class="col-md-4">
+                  <label class="form-label" for="{{ approval_form.source_units.id_for_label }}">{{ approval_form.source_units.label }}</label>
+                  {{ approval_form.source_units }}
+                  {% if approval_form.source_units.errors %}<div class="text-danger small">{{ approval_form.source_units.errors|join:', ' }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label" for="{{ approval_form.site_width.id_for_label }}">{{ approval_form.site_width.label }}</label>
+                  {{ approval_form.site_width }}
+                  {% if approval_form.site_width.errors %}<div class="text-danger small">{{ approval_form.site_width.errors|join:', ' }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label" for="{{ approval_form.site_height.id_for_label }}">{{ approval_form.site_height.label }}</label>
+                  {{ approval_form.site_height }}
+                  {% if approval_form.site_height.errors %}<div class="text-danger small">{{ approval_form.site_height.errors|join:', ' }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label" for="{{ approval_form.building_origin_x.id_for_label }}">{{ approval_form.building_origin_x.label }}</label>
+                  {{ approval_form.building_origin_x }}
+                  {% if approval_form.building_origin_x.errors %}<div class="text-danger small">{{ approval_form.building_origin_x.errors|join:', ' }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label" for="{{ approval_form.building_origin_y.id_for_label }}">{{ approval_form.building_origin_y.label }}</label>
+                  {{ approval_form.building_origin_y }}
+                  {% if approval_form.building_origin_y.errors %}<div class="text-danger small">{{ approval_form.building_origin_y.errors|join:', ' }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label" for="{{ approval_form.building_width.id_for_label }}">{{ approval_form.building_width.label }}</label>
+                  {{ approval_form.building_width }}
+                  {% if approval_form.building_width.errors %}<div class="text-danger small">{{ approval_form.building_width.errors|join:', ' }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label" for="{{ approval_form.building_height.id_for_label }}">{{ approval_form.building_height.label }}</label>
+                  {{ approval_form.building_height }}
+                  {% if approval_form.building_height.errors %}<div class="text-danger small">{{ approval_form.building_height.errors|join:', ' }}</div>{% endif %}
+                </div>
+                <div class="col-md-8">
+                  <label class="form-label" for="{{ approval_form.notes.id_for_label }}">{{ approval_form.notes.label }}</label>
+                  {{ approval_form.notes }}
+                  {% if approval_form.notes.errors %}<div class="text-danger small">{{ approval_form.notes.errors|join:', ' }}</div>{% endif %}
+                </div>
+                <div class="col-12">
+                  <label class="form-check">
+                    {{ approval_form.confirm }}
+                    <span class="form-check-label">{{ approval_form.confirm.label }}</span>
+                  </label>
+                  {% if approval_form.confirm.errors %}<div class="text-danger small">{{ approval_form.confirm.errors|join:', ' }}</div>{% endif %}
+                </div>
+              </div>
+              {% if approval_form.non_field_errors %}
+                <div class="alert alert-danger mt-3">{{ approval_form.non_field_errors|join:', ' }}</div>
+              {% endif %}
+              <div class="mt-3">
+                <button type="submit" class="btn btn-primary">Approve CAD Underlay</button>
+              </div>
+            </form>
+          {% endif %}
+        </div>
+      </div>
+    {% endif %}
+
+    {% if summary.detailed_space_decomposition %}
+      <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h2 class="card-title">Detailed Space Decomposition</h2>
+          {% if summary.detailed_space_decomposition.ready %}
+            <span class="badge bg-blue-lt">
+              {{ summary.detailed_space_decomposition.materialized_count }} of {{ summary.detailed_space_decomposition.candidate_count }} materialized
+            </span>
+          {% endif %}
+        </div>
+        <div class="card-body">
+          {% if summary.detailed_space_decomposition.blocked_reasons %}
+            <div class="alert alert-warning mb-0">
+              <ul class="mb-0">
+                {% for reason in summary.detailed_space_decomposition.blocked_reasons %}
+                  <li>{{ reason }}</li>
+                {% endfor %}
+              </ul>
+            </div>
+          {% else %}
+            <div class="row g-3 mb-3">
+              <div class="col-md-2">
+                <div class="text-secondary text-uppercase small">Candidates</div>
+                <div class="h2 mb-0">{{ summary.detailed_space_decomposition.candidate_count }}</div>
+              </div>
+              <div class="col-md-2">
+                <div class="text-secondary text-uppercase small">Materialized</div>
+                <div class="h2 mb-0">{{ summary.detailed_space_decomposition.materialized_count }}</div>
+              </div>
+              <div class="col-md-2">
+                <div class="text-secondary text-uppercase small">Boundary Review</div>
+                <div class="h2 mb-0">{{ summary.detailed_space_decomposition.pending_review_count }}</div>
+              </div>
+              <div class="col-md-2">
+                <div class="text-secondary text-uppercase small">Approved</div>
+                <div class="h2 mb-0">{{ summary.detailed_space_decomposition.approved_count }}</div>
+              </div>
+              <div class="col-md-4">
+                <div class="text-secondary text-uppercase small">Parent Space</div>
+                <div>
+                  {% if summary.detailed_space_decomposition.first_floor_space %}
+                    {{ summary.detailed_space_decomposition.first_floor_space|linkify }}
+                  {% else %}
+                    <span class="text-secondary">&mdash;</span>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+            <div class="table-responsive">
+              <table class="table table-hover mb-0">
+                <thead>
+                  <tr>
+                    <th>Space</th>
+                    <th>Kind</th>
+                    <th>Source</th>
+                    <th class="text-end">Boundary</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for candidate in summary.detailed_space_decomposition.candidates %}
+                    <tr>
+                      <td>
+                        {% if candidate.space %}
+                          {{ candidate.space|linkify }}
+                        {% else %}
+                          {{ candidate.name }}
+                        {% endif %}
+                        <div class="small text-secondary">{{ candidate.spec.room_label }}</div>
+                      </td>
+                      <td>{{ candidate.space_kind_label }}</td>
+                      <td>
+                        {{ candidate.spec.source_sheet_numbers|join:', ' }}
+                        {% if candidate.marker %}
+                          <div class="small text-secondary">Label {{ candidate.marker.source_x }}, {{ candidate.marker.source_y }}</div>
+                        {% endif %}
+                      </td>
+                      <td class="text-end">
+                        {{ candidate.boundary_geometry.x }}, {{ candidate.boundary_geometry.y }}
+                        <div class="small text-secondary">
+                          {{ candidate.boundary_geometry.width }} x {{ candidate.boundary_geometry.depth }}
+                        </div>
+                      </td>
+                      <td>
+                        {{ candidate.boundary_status_label }}
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+            {% if can_approve_detailed_space_boundaries and summary.detailed_space_decomposition.ready_for_boundary_approval and summary.detailed_space_decomposition.pending_review_count %}
+              <hr>
+              <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="approve_detailed_space_boundaries">
+                <input type="hidden" name="site" value="{{ summary.site_slug }}">
+                <div class="mb-3">
+                  <label class="form-label" for="{{ space_boundary_approval_form.notes.id_for_label }}">{{ space_boundary_approval_form.notes.label }}</label>
+                  {{ space_boundary_approval_form.notes }}
+                  {% if space_boundary_approval_form.notes.help_text %}<div class="form-hint">{{ space_boundary_approval_form.notes.help_text }}</div>{% endif %}
+                  {% if space_boundary_approval_form.notes.errors %}<div class="text-danger small">{{ space_boundary_approval_form.notes.errors|join:', ' }}</div>{% endif %}
+                </div>
+                <label class="form-check">
+                  {{ space_boundary_approval_form.confirm }}
+                  <span class="form-check-label">{{ space_boundary_approval_form.confirm.label }}</span>
+                </label>
+                {% if space_boundary_approval_form.confirm.errors %}
+                  <div class="text-danger small">{{ space_boundary_approval_form.confirm.errors|join:', ' }}</div>
+                {% endif %}
+                {% if space_boundary_approval_form.non_field_errors %}
+                  <div class="alert alert-danger mt-3">{{ space_boundary_approval_form.non_field_errors|join:', ' }}</div>
+                {% endif %}
+                <div class="mt-3">
+                  <button type="submit" class="btn btn-primary">Approve Detailed Boundaries</button>
+                </div>
+              </form>
+            {% endif %}
+            {% if can_apply_detailed_spaces and summary.cad_underlay.approved and not summary.detailed_space_decomposition.approved_count %}
+              <hr>
+              <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="apply_detailed_spaces">
+                <input type="hidden" name="site" value="{{ summary.site_slug }}">
+                <label class="form-check">
+                  {{ space_decomposition_form.confirm }}
+                  <span class="form-check-label">{{ space_decomposition_form.confirm.label }}</span>
+                </label>
+                {% if space_decomposition_form.confirm.errors %}
+                  <div class="text-danger small">{{ space_decomposition_form.confirm.errors|join:', ' }}</div>
+                {% endif %}
+                {% if space_decomposition_form.non_field_errors %}
+                  <div class="alert alert-danger mt-3">{{ space_decomposition_form.non_field_errors|join:', ' }}</div>
+                {% endif %}
+                <div class="mt-3">
+                  <button type="submit" class="btn btn-primary">Apply Detailed Spaces</button>
+                </div>
+              </form>
+            {% endif %}
+          {% endif %}
+        </div>
+      </div>
+    {% endif %}
+
+    {% if summary.rack_footprint_modeling %}
+      <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h2 class="card-title">Rack/Cabinet Footprint Modeling</h2>
+          {% if summary.rack_footprint_modeling.ready %}
+            <span class="badge bg-blue-lt">
+              {{ summary.rack_footprint_modeling.materialized_count }} of {{ summary.rack_footprint_modeling.candidate_count }} materialized
+            </span>
+          {% endif %}
+        </div>
+        <div class="card-body">
+          {% if summary.rack_footprint_modeling.blocked_reasons %}
+            <div class="alert alert-warning mb-0">
+              <ul class="mb-0">
+                {% for reason in summary.rack_footprint_modeling.blocked_reasons %}
+                  <li>{{ reason }}</li>
+                {% endfor %}
+              </ul>
+            </div>
+          {% else %}
+            <div class="row g-3 mb-3">
+              <div class="col-md-2">
+                <div class="text-secondary text-uppercase small">Candidates</div>
+                <div class="h2 mb-0">{{ summary.rack_footprint_modeling.candidate_count }}</div>
+              </div>
+              <div class="col-md-2">
+                <div class="text-secondary text-uppercase small">Placed</div>
+                <div class="h2 mb-0">{{ summary.rack_footprint_modeling.placed_count }}</div>
+              </div>
+              <div class="col-md-2">
+                <div class="text-secondary text-uppercase small">Matched</div>
+                <div class="h2 mb-0">{{ summary.rack_footprint_modeling.matched_count }}</div>
+              </div>
+              <div class="col-md-2">
+                <div class="text-secondary text-uppercase small">Pending Review</div>
+                <div class="h2 mb-0">{{ summary.rack_footprint_modeling.pending_review_count }}</div>
+              </div>
+              <div class="col-md-2">
+                <div class="text-secondary text-uppercase small">Approved</div>
+                <div class="h2 mb-0">{{ summary.rack_footprint_modeling.approved_count }}</div>
+              </div>
+              <div class="col-md-2">
+                <div class="text-secondary text-uppercase small">Unmatched</div>
+                <div class="h2 mb-0">{{ summary.rack_footprint_modeling.unmatched_count }}</div>
+              </div>
+            </div>
+            <div class="table-responsive">
+              <table class="table table-hover mb-0">
+                <thead>
+                  <tr>
+                    <th>Slot</th>
+                    <th>NetBox Rack</th>
+                    <th>Space</th>
+                    <th class="text-end">Footprint</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for candidate in summary.rack_footprint_modeling.candidates|slice:":24" %}
+                    <tr>
+                      <td>
+                        {% if candidate.element %}
+                          {{ candidate.element|linkify }}
+                        {% else %}
+                          {{ candidate.source_record.physical_slot }}
+                        {% endif %}
+                        {% if candidate.electrical_rack_ids %}
+                          <div class="small text-secondary">{{ candidate.electrical_rack_ids|join:', ' }}</div>
+                        {% elif candidate.source_record.source_label %}
+                          <div class="small text-secondary">{{ candidate.source_record.source_label }}</div>
+                        {% endif %}
+                      </td>
+                      <td>{% if candidate.rack %}{{ candidate.rack|linkify }}{% else %}<span class="text-warning">Unmatched</span>{% endif %}</td>
+                      <td>{% if candidate.physical_space %}{{ candidate.physical_space|linkify }}{% else %}&mdash;{% endif %}</td>
+                      <td class="text-end">
+                        {{ candidate.boundary_geometry.x }}, {{ candidate.boundary_geometry.y }}
+                        <div class="small text-secondary">
+                          {{ candidate.boundary_geometry.width }} x {{ candidate.boundary_geometry.depth }}
+                        </div>
+                      </td>
+                      <td>{{ candidate.status_label }}</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+            {% if summary.rack_footprint_modeling.candidate_count > 24 %}
+              <div class="small text-secondary mt-2">
+                Showing the first 24 candidates. The full set is rendered on the visual spatial review map after materialization.
+              </div>
+            {% endif %}
+            {% if can_approve_rack_footprints and summary.rack_footprint_modeling.ready_for_approval %}
+              <hr>
+              <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="approve_rack_footprint_bindings">
+                <input type="hidden" name="site" value="{{ summary.site_slug }}">
+                <div class="mb-3">
+                  <label class="form-label" for="{{ rack_footprint_approval_form.notes.id_for_label }}">{{ rack_footprint_approval_form.notes.label }}</label>
+                  {{ rack_footprint_approval_form.notes }}
+                  {% if rack_footprint_approval_form.notes.help_text %}<div class="form-hint">{{ rack_footprint_approval_form.notes.help_text }}</div>{% endif %}
+                  {% if rack_footprint_approval_form.notes.errors %}<div class="text-danger small">{{ rack_footprint_approval_form.notes.errors|join:', ' }}</div>{% endif %}
+                </div>
+                <label class="form-check">
+                  {{ rack_footprint_approval_form.confirm }}
+                  <span class="form-check-label">{{ rack_footprint_approval_form.confirm.label }}</span>
+                </label>
+                {% if rack_footprint_approval_form.confirm.errors %}
+                  <div class="text-danger small">{{ rack_footprint_approval_form.confirm.errors|join:', ' }}</div>
+                {% endif %}
+                {% if rack_footprint_approval_form.non_field_errors %}
+                  <div class="alert alert-danger mt-3">{{ rack_footprint_approval_form.non_field_errors|join:', ' }}</div>
+                {% endif %}
+                <div class="mt-3">
+                  <button type="submit" class="btn btn-primary">Approve Rack Footprint Bindings</button>
+                </div>
+              </form>
+            {% endif %}
+            {% if can_apply_rack_footprints and summary.rack_footprint_modeling.ready and not summary.rack_footprint_modeling.pending_review_count %}
+              <hr>
+              <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="apply_rack_footprints">
+                <input type="hidden" name="site" value="{{ summary.site_slug }}">
+                <label class="form-check">
+                  {{ rack_footprint_materialization_form.confirm }}
+                  <span class="form-check-label">{{ rack_footprint_materialization_form.confirm.label }}</span>
+                </label>
+                {% if rack_footprint_materialization_form.confirm.errors %}
+                  <div class="text-danger small">{{ rack_footprint_materialization_form.confirm.errors|join:', ' }}</div>
+                {% endif %}
+                {% if rack_footprint_materialization_form.non_field_errors %}
+                  <div class="alert alert-danger mt-3">{{ rack_footprint_materialization_form.non_field_errors|join:', ' }}</div>
+                {% endif %}
+                <div class="mt-3">
+                  <button type="submit" class="btn btn-primary">Apply Rack Footprints</button>
+                </div>
+              </form>
+            {% endif %}
+          {% endif %}
+        </div>
+      </div>
+    {% endif %}
+
+    <div class="row">
+      <div class="col-lg-6">
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">Source Coverage</h2>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-hover mb-0">
+              <thead>
+                <tr>
+                  <th>Document</th>
+                  <th class="text-end">Sheets</th>
+                  <th class="text-end">Layers</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in summary.source_documents %}
+                  <tr>
+                    <td>
+                      {{ row.document|linkify }}
+                      {% if row.document.revision %}
+                        <div class="small text-secondary">Revision {{ row.document.revision }}</div>
+                      {% endif %}
+                    </td>
+                    <td class="text-end">{{ row.sheet_count }}</td>
+                    <td class="text-end">{{ row.layer_count }}</td>
+                  </tr>
+                {% empty %}
+                  <tr><td colspan="3" class="text-secondary">No source documents are scoped to this site.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">Spatial Frames</h2>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-hover mb-0">
+              <thead>
+                <tr>
+                  <th>Frame</th>
+                  <th>Location</th>
+                  <th class="text-end">Size</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for frame in summary.spatial_frames %}
+                  <tr>
+                    <td>{{ frame|linkify }}</td>
+                    <td>{% if frame.location %}{{ frame.location|linkify }}{% else %}&mdash;{% endif %}</td>
+                    <td class="text-end">
+                      {% if frame.width and frame.height %}{{ frame.width }} x {{ frame.height }}{% else %}&mdash;{% endif %}
+                    </td>
+                  </tr>
+                {% empty %}
+                  <tr><td colspan="3" class="text-secondary">No spatial frames are scoped to this site.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-6">
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">Rack Bindings</h2>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-hover mb-0">
+              <thead>
+                <tr>
+                  <th>Rack</th>
+                  <th>Physical Element</th>
+                  <th>Binding</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in summary.rack_bindings %}
+                  <tr>
+                    <td>{% if row.rack %}{{ row.rack|linkify }}{% else %}&mdash;{% endif %}</td>
+                    <td>{% if row.physical_element %}{{ row.physical_element|linkify }}{% else %}&mdash;{% endif %}</td>
+                    <td>
+                      {{ row.binding|linkify }}
+                      {% if row.spatial_placement %}
+                        <div class="small text-secondary">{{ row.spatial_placement|linkify }}</div>
+                      {% endif %}
+                    </td>
+                  </tr>
+                {% empty %}
+                  <tr><td colspan="3" class="text-secondary">No rack bindings are scoped to this site.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col-md-6">
+            <div class="card">
+              <div class="card-header">
+                <h2 class="card-title">Physical Spaces</h2>
+              </div>
+              <div class="card-body">
+                <dl class="row mb-0">
+                  {% for count in summary.physical_space_kind_counts %}
+                    <dt class="col-8">{{ count.label }}</dt><dd class="col-4 text-end">{{ count.count }}</dd>
+                  {% empty %}
+                    <dt class="col-12 text-secondary fw-normal">No physical spaces are scoped to this site.</dt>
+                  {% endfor %}
+                </dl>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="card">
+              <div class="card-header">
+                <h2 class="card-title">Physical Validation</h2>
+              </div>
+              <div class="card-body">
+                <div class="mb-2">
+                  <span class="text-secondary">Findings</span>
+                  <span class="float-end">{{ summary.physical_validation_finding_count }}</span>
+                </div>
+                <dl class="row mb-0">
+                  {% for count in summary.validation_severity_counts %}
+                    <dt class="col-8">{{ count.label }}</dt><dd class="col-4 text-end">{{ count.count }}</dd>
+                  {% empty %}
+                    <dt class="col-12 text-success fw-normal">No physical validation findings.</dt>
+                  {% endfor %}
+                </dl>
+                {% if summary.validation_type_counts %}
+                  <hr class="my-2">
+                  <dl class="row mb-0">
+                    {% for count in summary.validation_type_counts %}
+                      <dt class="col-8">{{ count.label }}</dt><dd class="col-4 text-end">{{ count.count }}</dd>
+                    {% endfor %}
+                  </dl>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+{% endblock %}

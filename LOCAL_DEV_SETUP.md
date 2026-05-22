@@ -7,8 +7,6 @@ This project follows the same local dev pattern as `netbox_rpki` and
 
 - NetBox source tree at `$HOME/src/netbox-v4.2.3/netbox`
 - Virtualenv at `$HOME/.virtualenvs/netbox-4.2.3`
-- Floorplan plugin checkout at `$HOME/src/netbox-floorplan-plugin` for
-  layout-aware development
 - Docker for PostgreSQL and Redis
 - `devrun` uses its own Docker Compose project name, `netbox_power_plant_devrun`,
   so its local volumes and generated container names do not collide with other
@@ -22,39 +20,43 @@ This project follows the same local dev pattern as `netbox_rpki` and
 cd ~/src/netbox_power_plant
 source ~/.virtualenvs/netbox-4.2.3/bin/activate
 pip install -e ".[test]"
-pip install -e ~/src/netbox-floorplan-plugin
 ```
 
-## Floorplan dependency
-
-Layout-aware power-plant work expects the companion floorplan plugin package
-`netbox-floorplan-plugin` to be installed into the same virtualenv and enabled
-in NetBox as `netbox_floorplan`.
-
-The baseline NetBox checkout also has its own isolated `devrun` wrapper and
-host ports so it does not share PostgreSQL or Redis state with this plugin
-repo. Start that baseline runtime from the NetBox checkout before applying the
-floorplan plugin's migrations or static assets:
+CAD/DWG support is installed by default because direct CAD ingest is part of the
+site modeling workflow. Generate the Madison CAD review artifacts with:
 
 ```bash
-cd ~/src/netbox-v4.2.3/netbox
-./devrun/dev.sh start
-./devrun/dev.sh status
+python scripts/report_madison_cad_calibration.py \
+  --cad-dir "/path/to/2026.04.02_Enovum MAD1_Electical CAD" \
+  --out-dir "/path/to/electrical/generated"
 ```
 
-The default baseline host ports are PostgreSQL on `5435` and Redis on `6382`.
+The same CAD package can be uploaded from the NetBox UI at
+`/plugins/power-plant/madison-underlay-review/`. Operators can upload a ZIP of
+the CAD folder, or select the DWG/PCP files together. The total uploaded package
+is limited to 2 GiB, and the extracted CAD contents are also limited to 2 GiB.
+The plugin stores the package under NetBox `MEDIA_ROOT`, then creates or
+refreshes the Madison source document, source sheets/layers, site coordinate
+plane, current-building footprint, and provenance records from the stored DWG
+package. Creating a new NetBox site also requires the normal `dcim.add_site`
+permission.
 
-Once those baseline services are up, apply the floorplan plugin's migrations
-and static assets from the NetBox checkout:
+## Spatial placement development
 
-```bash
-cd ~/src/netbox-v4.2.3/netbox
-~/.virtualenvs/netbox-4.2.3/bin/python manage.py migrate netbox_floorplan
-~/.virtualenvs/netbox-4.2.3/bin/python manage.py collectstatic --noinput
-```
+Layout-aware power-plant work uses plugin-native spatial models:
 
-Use `./devrun/dev.sh stop` from the baseline checkout when you want to tear
-down those baseline services.
+- `SpatialFrame` defines a coordinate frame for a site, room, drawing, or other
+  placement scope.
+- `SpatialPlacement` binds power-plant objects to coordinates in one of those
+  frames.
+- `services.cad_calibration` uses CAD/DWG-derived bounds to build lower-left,
+  X-right, Y-up coordinate grids. The hand-built Madison SVG should be treated
+  as an approximate overlay, not as the source of physical scale.
+
+Do not install or enable `netbox_floorplan` for this plugin's placement
+workflow. The power-plant plugin owns its own spatial semantics so electrical
+equipment, rack handoff points, and future layout views have a consistent
+relational model.
 
 ## Common commands
 
@@ -76,6 +78,5 @@ down those baseline services.
 - The generated local state lives under `~/.config/netbox-power-plant-dev`.
 - You can override the repo-specific host ports through `POSTGRES_HOST_PORT`
   and `REDIS_HOST_PORT` in `devrun/.env` or your shell environment.
-- `netbox_power_plant` must degrade cleanly when `netbox_floorplan` is absent
-  or disabled. Floorplan-aware services should report no resolved layout context
-  instead of breaking topology-only workflows.
+- `netbox_power_plant` does not require `netbox_floorplan`. Placement-related
+  services should use `SpatialFrame` and `SpatialPlacement`.

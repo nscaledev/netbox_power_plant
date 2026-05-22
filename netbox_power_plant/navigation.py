@@ -7,6 +7,22 @@ menu_items = (
         link_text='System Overview',
     ),
     PluginMenuItem(
+        link='plugins:netbox_power_plant:operator_dashboard',
+        link_text='Operator Center',
+    ),
+    PluginMenuItem(
+        link='plugins:netbox_power_plant:neocloud_cockpit',
+        link_text='Neocloud Cockpit',
+    ),
+    PluginMenuItem(
+        link='plugins:netbox_power_plant:template_workflow',
+        link_text='Template Workflow',
+    ),
+    PluginMenuItem(
+        link='plugins:netbox_power_plant:madison_underlay_review',
+        link_text='Madison Underlay Review',
+    ),
+    PluginMenuItem(
         link='plugins:netbox_power_plant:powersystem_list',
         link_text='Power Systems',
         buttons=(
@@ -29,12 +45,108 @@ menu_items = (
         ),
     ),
     PluginMenuItem(
+        link='plugins:netbox_power_plant:powervalidationrun_list',
+        link_text='Validation Runs',
+        buttons=(
+            PluginMenuButton(
+                link='plugins:netbox_power_plant:powervalidationrun_add',
+                title='Add validation run',
+                icon_class='mdi mdi-plus-thick',
+            ),
+        ),
+    ),
+    PluginMenuItem(
+        link='plugins:netbox_power_plant:powerfinding_list',
+        link_text='Power Findings',
+        buttons=(
+            PluginMenuButton(
+                link='plugins:netbox_power_plant:powerfinding_add',
+                title='Add power finding',
+                icon_class='mdi mdi-plus-thick',
+            ),
+        ),
+    ),
+    PluginMenuItem(
+        link='plugins:netbox_power_plant:powerarchitecturetemplate_list',
+        link_text='Architecture Templates',
+    ),
+    PluginMenuItem(
+        link='plugins:netbox_power_plant:instantiationrun_list',
+        link_text='Instantiation Runs',
+    ),
+    PluginMenuItem(
+        link='plugins:netbox_power_plant:capacityreservation_list',
+        link_text='Capacity Reservations',
+        buttons=(
+            PluginMenuButton(
+                link='plugins:netbox_power_plant:capacityreservation_add',
+                title='Add capacity reservation',
+                icon_class='mdi mdi-plus-thick',
+            ),
+        ),
+    ),
+    PluginMenuItem(
         link='plugins:netbox_power_plant:redundancygroup_list',
         link_text='Redundancy Groups',
         buttons=(
             PluginMenuButton(
                 link='plugins:netbox_power_plant:redundancygroup_add',
                 title='Add redundancy group',
+                icon_class='mdi mdi-plus-thick',
+            ),
+        ),
+    ),
+    PluginMenuItem(
+        link='plugins:netbox_power_plant:upsdetail_list',
+        link_text='UPS Details',
+        buttons=(
+            PluginMenuButton(
+                link='plugins:netbox_power_plant:upsdetail_add',
+                title='Add UPS detail',
+                icon_class='mdi mdi-plus-thick',
+            ),
+        ),
+    ),
+    PluginMenuItem(
+        link='plugins:netbox_power_plant:generatordetail_list',
+        link_text='Generator Details',
+        buttons=(
+            PluginMenuButton(
+                link='plugins:netbox_power_plant:generatordetail_add',
+                title='Add generator detail',
+                icon_class='mdi mdi-plus-thick',
+            ),
+        ),
+    ),
+    PluginMenuItem(
+        link='plugins:netbox_power_plant:transformerdetail_list',
+        link_text='Transformer Details',
+        buttons=(
+            PluginMenuButton(
+                link='plugins:netbox_power_plant:transformerdetail_add',
+                title='Add transformer detail',
+                icon_class='mdi mdi-plus-thick',
+            ),
+        ),
+    ),
+    PluginMenuItem(
+        link='plugins:netbox_power_plant:bessdetail_list',
+        link_text='BESS Details',
+        buttons=(
+            PluginMenuButton(
+                link='plugins:netbox_power_plant:bessdetail_add',
+                title='Add BESS detail',
+                icon_class='mdi mdi-plus-thick',
+            ),
+        ),
+    ),
+    PluginMenuItem(
+        link='plugins:netbox_power_plant:buswaysectiondetail_list',
+        link_text='Busway Section Details',
+        buttons=(
+            PluginMenuButton(
+                link='plugins:netbox_power_plant:buswaysectiondetail_add',
+                title='Add busway section detail',
                 icon_class='mdi mdi-plus-thick',
             ),
         ),
@@ -73,12 +185,12 @@ menu_items = (
         ),
     ),
     PluginMenuItem(
-        link='plugins:netbox_power_plant:rackdeliverypoint_list',
-        link_text='Rack Delivery Points',
+        link='plugins:netbox_power_plant:powerhandoffpoint_list',
+        link_text='Power Handoff Points',
         buttons=(
             PluginMenuButton(
-                link='plugins:netbox_power_plant:rackdeliverypoint_add',
-                title='Add rack delivery point',
+                link='plugins:netbox_power_plant:powerhandoffpoint_add',
+                title='Add power handoff point',
                 icon_class='mdi mdi-plus-thick',
             ),
         ),
@@ -101,6 +213,116 @@ menu_items = (
             PluginMenuButton(
                 link='plugins:netbox_power_plant:internalpowerbusattachment_add',
                 title='Add bus power port attachment',
+                icon_class='mdi mdi-plus-thick',
+            ),
+        ),
+    ),
+    PluginMenuItem(
+        link='plugins:netbox_power_plant:plantsourcedocument_list',
+        link_text='Plant Source Documents',
+        buttons=(
+            PluginMenuButton(
+                link='plugins:netbox_power_plant:plantsourcedocument_add',
+                title='Add plant source document',
+                icon_class='mdi mdi-plus-thick',
+            ),
+        ),
+    ),
+    PluginMenuItem(
+        link='plugins:netbox_power_plant:plantsourcesheet_list',
+        link_text='Plant Source Sheets',
+        buttons=(
+            PluginMenuButton(
+                link='plugins:netbox_power_plant:plantsourcesheet_add',
+                title='Add plant source sheet',
+                icon_class='mdi mdi-plus-thick',
+            ),
+        ),
+    ),
+    PluginMenuItem(
+        link='plugins:netbox_power_plant:plantsourcelayer_list',
+        link_text='Plant Source Layers',
+        buttons=(
+            PluginMenuButton(
+                link='plugins:netbox_power_plant:plantsourcelayer_add',
+                title='Add plant source layer',
+                icon_class='mdi mdi-plus-thick',
+            ),
+        ),
+    ),
+    PluginMenuItem(
+        link='plugins:netbox_power_plant:plantprovenance_list',
+        link_text='Plant Provenance',
+        buttons=(
+            PluginMenuButton(
+                link='plugins:netbox_power_plant:plantprovenance_add',
+                title='Add plant provenance record',
+                icon_class='mdi mdi-plus-thick',
+            ),
+        ),
+    ),
+    PluginMenuItem(
+        link='plugins:netbox_power_plant:spatialframe_list',
+        link_text='Spatial Frames',
+        buttons=(
+            PluginMenuButton(
+                link='plugins:netbox_power_plant:spatialframe_add',
+                title='Add spatial frame',
+                icon_class='mdi mdi-plus-thick',
+            ),
+        ),
+    ),
+    PluginMenuItem(
+        link='plugins:netbox_power_plant:spatialplacement_list',
+        link_text='Spatial Placements',
+        buttons=(
+            PluginMenuButton(
+                link='plugins:netbox_power_plant:spatialplacement_add',
+                title='Add spatial placement',
+                icon_class='mdi mdi-plus-thick',
+            ),
+        ),
+    ),
+    PluginMenuItem(
+        link='plugins:netbox_power_plant:physicalspace_list',
+        link_text='Physical Spaces',
+        buttons=(
+            PluginMenuButton(
+                link='plugins:netbox_power_plant:physicalspace_add',
+                title='Add physical space',
+                icon_class='mdi mdi-plus-thick',
+            ),
+        ),
+    ),
+    PluginMenuItem(
+        link='plugins:netbox_power_plant:physicalelementtype_list',
+        link_text='Physical Element Types',
+        buttons=(
+            PluginMenuButton(
+                link='plugins:netbox_power_plant:physicalelementtype_add',
+                title='Add physical element type',
+                icon_class='mdi mdi-plus-thick',
+            ),
+        ),
+    ),
+    PluginMenuItem(
+        link='plugins:netbox_power_plant:physicalelement_list',
+        link_text='Physical Elements',
+        buttons=(
+            PluginMenuButton(
+                link='plugins:netbox_power_plant:physicalelement_add',
+                title='Add physical element',
+                icon_class='mdi mdi-plus-thick',
+            ),
+        ),
+    ),
+    PluginMenuItem(
+        link='plugins:netbox_power_plant:physicalobjectbinding_list',
+        link_text='Physical Object Bindings',
+        buttons=(
+            PluginMenuButton(
+                link='plugins:netbox_power_plant:physicalobjectbinding_add',
+                title='Add physical object binding',
                 icon_class='mdi mdi-plus-thick',
             ),
         ),

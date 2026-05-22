@@ -21,8 +21,12 @@ def build_layout_url(power_system):
     return reverse('plugins:netbox_power_plant:powersystem_layout', kwargs={'pk': power_system.pk})
 
 
-def build_rack_delivery_url(power_system):
+def build_power_handoff_summary_url(power_system):
     return reverse('plugins:netbox_power_plant:powersystem_rack_delivery', kwargs={'pk': power_system.pk})
+
+
+def build_rack_delivery_url(power_system):
+    return build_power_handoff_summary_url(power_system)
 
 
 def default_placement_scope_type(power_system):
@@ -52,7 +56,7 @@ def build_placement_edit_url(placement, *, return_url):
 
 def build_delivery_add_url(power_system, *, return_url, electrical_node_id=None, electrical_terminal_id=None):
     return build_query_url(
-        'plugins:netbox_power_plant:rackdeliverypoint_add',
+        'plugins:netbox_power_plant:powerhandoffpoint_add',
         power_system=power_system.pk,
         electrical_node=electrical_node_id,
         electrical_terminal=electrical_terminal_id,
@@ -62,7 +66,7 @@ def build_delivery_add_url(power_system, *, return_url, electrical_node_id=None,
 
 def build_delivery_edit_url(delivery_point, *, return_url):
     return build_query_url(
-        'plugins:netbox_power_plant:rackdeliverypoint_edit',
+        'plugins:netbox_power_plant:powerhandoffpoint_edit',
         kwargs={'pk': delivery_point.pk},
         return_url=return_url,
     )
@@ -71,7 +75,10 @@ def build_delivery_edit_url(delivery_point, *, return_url):
 def build_workflow_urls(power_system, *, placement_return_url, delivery_return_url):
     return {
         'layout': build_layout_url(power_system),
-        'rack_delivery': build_rack_delivery_url(power_system),
+        'power_handoff_summary': build_power_handoff_summary_url(power_system),
+        # Compatibility key for templates/tests that have not yet moved off the
+        # original route naming.
+        'rack_delivery': build_power_handoff_summary_url(power_system),
         'placement_add': build_placement_add_url(power_system, return_url=placement_return_url),
         'delivery_add': build_delivery_add_url(power_system, return_url=delivery_return_url),
     }

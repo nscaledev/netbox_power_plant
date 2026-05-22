@@ -1,0 +1,36 @@
+{% extends 'generic/object.html' %}
+{% load helpers %}
+
+{% block content %}
+  <div class="row">
+    <div class="col-md-8">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Physical Object Binding Details</h2>
+        </div>
+        <div class="card-body">
+          <table class="table table-hover attr-table mb-0">
+            <tr><th>Physical Element</th><td>{{ object.physical_element|linkify|default:'—' }}</td></tr>
+            <tr><th>Spatial Placement</th><td>{{ object.spatial_placement|linkify|default:'—' }}</td></tr>
+            <tr><th>Assigned Object Type</th><td>{{ object.assigned_object_type }}</td></tr>
+            <tr><th>Assigned Object</th><td>{{ object.assigned_object|linkify|default:'—' }}</td></tr>
+            <tr><th>Binding Role</th><td>{{ object.get_binding_role_display }}</td></tr>
+            <tr><th>Confidence</th><td>{{ object.get_confidence_display }}</td></tr>
+            <tr><th>Primary</th><td>{% checkmark object.is_primary %}</td></tr>
+            <tr><th>Description</th><td>{{ object.description|default:'—' }}</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Metadata</h2>
+        </div>
+        <div class="card-body">
+          <pre class="mb-0">{{ object.metadata|default:'{}' }}</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}

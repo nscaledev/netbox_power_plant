@@ -1,14 +1,9 @@
-from decimal import Decimal
-from types import SimpleNamespace
-from unittest.mock import patch
 from urllib.parse import urlencode
 
-from django.conf import settings
-from django.test import override_settings
 from django.urls import reverse
 from utilities.testing import TestCase
 
-from dcim.models import Location, Rack, Site
+from dcim.models import Device, DeviceRole, DeviceType, Location, Manufacturer, PowerPort, Rack, Site
 
 from netbox_power_plant.choices import NodeKindChoices, PlacementScopeChoices, SupplyTypeChoices, TerminalDirectionChoices
 from netbox_power_plant.models import (
@@ -18,56 +13,9 @@ from netbox_power_plant.models import (
     ElectricalTerminal,
     PowerDomain,
     PowerSystem,
-    RackDeliveryPoint,
+    PowerHandoffPoint,
 )
 from netbox_power_plant.services.workflow_urls import build_delivery_edit_url, build_placement_edit_url
-
-
-class FakeFloorplanQuerySet:
-    def __init__(self, floorplans):
-        self.floorplans = list(floorplans)
-
-    def order_by(self, *_args):
-        return self
-
-    def first(self):
-        return self.floorplans[0] if self.floorplans else None
-
-
-class FakeFloorplanManager:
-    def __init__(self, floorplans):
-        self.floorplans = list(floorplans)
-
-    def filter(self, **kwargs):
-        matches = []
-        for floorplan in self.floorplans:
-            if all(getattr(floorplan, field_name) == value for field_name, value in kwargs.items()):
-                matches.append(floorplan)
-        return FakeFloorplanQuerySet(matches)
-
-
-class FakeFloorplan(SimpleNamespace):
-    def __str__(self):
-        return f'Floorplan {self.pk}'
-
-
-def make_floorplan_module(*floorplans):
-    floorplan_model = type('FakeFloorplanModel', (), {'objects': FakeFloorplanManager(floorplans)})
-    return SimpleNamespace(Floorplan=floorplan_model)
-
-
-def make_floorplan(pk, *, site=None, location=None, canvas=None):
-    return FakeFloorplan(
-        pk=pk,
-        site=site,
-        location=location,
-        assigned_image=SimpleNamespace(pk=pk + 1000),
-        width=Decimal('42.50'),
-        height=Decimal('18.25'),
-        measurement_unit='m',
-        canvas=canvas or {},
-        get_absolute_url=lambda: f'/plugins/floorplan/{pk}/',
-    )
 
 
 class Phase5WorkflowViewTestCase(TestCase):
@@ -79,9 +27,9 @@ class Phase5WorkflowViewTestCase(TestCase):
         'netbox_power_plant.view_electricalnode',
         'netbox_power_plant.view_electricalterminal',
         'netbox_power_plant.view_electricalsegment',
-        'netbox_power_plant.view_rackdeliverypoint',
+        'netbox_power_plant.view_powerhandoffpoint',
         'netbox_power_plant.view_electricalnodeplacement',
-        'netbox_power_plant.add_rackdeliverypoint',
+        'netbox_power_plant.add_powerhandoffpoint',
         'netbox_power_plant.add_electricalnodeplacement',
     )
 
@@ -181,13 +129,25 @@ class Phase5WorkflowViewTestCase(TestCase):
             symbol_kind='source',
         )
         cls.rack = Rack.objects.create(name='Rack B1', site=cls.site, location=cls.location)
-        cls.delivery_point = RackDeliveryPoint.objects.create(
+        cls.manufacturer = Manufacturer.objects.create(name='Phase 5 Manufacturer', slug='phase-5-manufacturer')
+        cls.device_type = DeviceType.objects.create(model='Phase 5 Device', slug='phase-5-device', manufacturer=cls.manufacturer)
+        cls.device_role = DeviceRole.objects.create(name='Phase 5 Role', slug='phase-5-role', color='ff0000')
+        cls.device = Device.objects.create(
+            name='Phase 5 Device B',
+            device_type=cls.device_type,
+            role=cls.device_role,
+            site=cls.site,
+            location=cls.location,
+            rack=cls.rack,
+        )
+        cls.power_port = PowerPort.objects.create(device=cls.device, name='PSU A')
+        cls.delivery_point = PowerHandoffPoint.objects.create(
             name='Rack B Delivery',
             slug='rack-b-delivery',
             power_system=cls.power_system,
             electrical_node=cls.modeled_boundary_node,
             electrical_terminal=cls.modeled_boundary_terminal,
-            rack=cls.rack,
+            power_port=cls.power_port,
             feed_label='B-feed',
         )
 
@@ -209,7 +169,7 @@ class Phase5WorkflowViewTestCase(TestCase):
             }),
         )
         expected_delivery_add = '{}?{}'.format(
-            reverse('plugins:netbox_power_plant:rackdeliverypoint_add'),
+            reverse('plugins:netbox_power_plant:powerhandoffpoint_add'),
             urlencode({
                 'power_system': self.power_system.pk,
                 'return_url': rack_delivery_url,
@@ -244,13 +204,9 @@ class Phase5WorkflowViewTestCase(TestCase):
         self.assertEqual(response.context['return_url'], layout_url)
 
     def test_layout_view_exposes_inferred_delivery_workflow_and_prefills_add_form(self):
-        plugins = list(getattr(settings, 'PLUGINS', ()))
-        if 'netbox_floorplan' not in plugins:
-            plugins.append('netbox_floorplan')
-
         layout_url = reverse('plugins:netbox_power_plant:powersystem_layout', kwargs={'pk': self.power_system.pk})
         create_url = '{}?{}'.format(
-            reverse('plugins:netbox_power_plant:rackdeliverypoint_add'),
+            reverse('plugins:netbox_power_plant:powerhandoffpoint_add'),
             urlencode({
                 'power_system': self.power_system.pk,
                 'electrical_node': self.boundary_node.pk,
@@ -259,15 +215,10 @@ class Phase5WorkflowViewTestCase(TestCase):
             }),
         )
 
-        with override_settings(PLUGINS=plugins):
-            with patch(
-                'netbox_power_plant.services.floorplan.import_module',
-                return_value=make_floorplan_module(make_floorplan(101, site=self.site, location=self.location)),
-            ):
-                response = self.client.get(layout_url)
+        response = self.client.get(layout_url)
 
         self.assertHttpStatus(response, 200)
-        self.assertContains(response, 'Model delivery point')
+        self.assertContains(response, 'Model power handoff point')
         self.assertEqual(len(response.context['inferred_delivery_actions']), 1)
         self.assertEqual(response.context['inferred_delivery_actions'][0].create_url, create_url)
 
@@ -282,26 +233,18 @@ class Phase5WorkflowViewTestCase(TestCase):
     def test_layout_view_exposes_scoped_edit_workflows_for_existing_objects(self):
         self.add_permissions(
             'netbox_power_plant.change_electricalnodeplacement',
-            'netbox_power_plant.change_rackdeliverypoint',
+            'netbox_power_plant.change_powerhandoffpoint',
         )
-        plugins = list(getattr(settings, 'PLUGINS', ()))
-        if 'netbox_floorplan' not in plugins:
-            plugins.append('netbox_floorplan')
 
         layout_url = reverse('plugins:netbox_power_plant:powersystem_layout', kwargs={'pk': self.power_system.pk})
         expected_placement_edit_url = build_placement_edit_url(self.placement, return_url=layout_url)
         expected_delivery_edit_url = build_delivery_edit_url(self.delivery_point, return_url=layout_url)
 
-        with override_settings(PLUGINS=plugins):
-            with patch(
-                'netbox_power_plant.services.floorplan.import_module',
-                return_value=make_floorplan_module(make_floorplan(101, site=self.site, location=self.location)),
-            ):
-                response = self.client.get(layout_url)
+        response = self.client.get(layout_url)
 
         self.assertHttpStatus(response, 200)
         self.assertContains(response, 'Edit placement')
-        self.assertContains(response, 'Edit delivery point')
+        self.assertContains(response, 'Edit power handoff point')
         self.assertEqual(response.context['placement_actions'][0].edit_url, expected_placement_edit_url)
         self.assertEqual(response.context['delivery_overlay_actions'][0].edit_url, expected_delivery_edit_url)
 
@@ -318,11 +261,11 @@ class Phase5WorkflowViewTestCase(TestCase):
         self.assertEqual(response.context['object'].pk, self.delivery_point.pk)
 
     def test_rack_delivery_summary_table_exposes_modeled_and_inferred_workflows(self):
-        self.add_permissions('netbox_power_plant.change_rackdeliverypoint')
+        self.add_permissions('netbox_power_plant.change_powerhandoffpoint')
         rack_delivery_url = reverse('plugins:netbox_power_plant:powersystem_rack_delivery', kwargs={'pk': self.power_system.pk})
         expected_delivery_edit_url = build_delivery_edit_url(self.delivery_point, return_url=rack_delivery_url)
         expected_inferred_add_url = '{}?{}'.format(
-            reverse('plugins:netbox_power_plant:rackdeliverypoint_add'),
+            reverse('plugins:netbox_power_plant:powerhandoffpoint_add'),
             urlencode({
                 'power_system': self.power_system.pk,
                 'electrical_node': self.boundary_node.pk,

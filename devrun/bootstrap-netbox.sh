@@ -144,15 +144,14 @@ ALLOWED_HOSTS = ['*']
 DEBUG = True
 DEVELOPER = True
 
-DATABASES = {
-    'default': {
-        'NAME': 'netbox',
-        'USER': 'netbox',
-        'PASSWORD': '$NETBOX_DATABASE_PASSWORD',
-        'HOST': '127.0.0.1',
-        'PORT': '$POSTGRES_HOST_PORT',
-        'CONN_MAX_AGE': 300,
-    }
+DATABASE = {
+    'ENGINE': 'django.db.backends.postgresql',
+    'NAME': 'netbox',
+    'USER': 'netbox',
+    'PASSWORD': '$NETBOX_DATABASE_PASSWORD',
+    'HOST': '127.0.0.1',
+    'PORT': '$POSTGRES_HOST_PORT',
+    'CONN_MAX_AGE': 300,
 }
 
 REDIS = {

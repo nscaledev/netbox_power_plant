@@ -1,0 +1,45 @@
+{% extends 'generic/object.html' %}
+{% load helpers %}
+{% load render_table from django_tables2 %}
+
+{% block content %}
+  <div class="row">
+    <div class="col-md-8">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Validation Run Details</h2>
+        </div>
+        <div class="card-body">
+          <table class="table table-hover attr-table mb-0">
+            <tr><th>Power System</th><td>{{ object.power_system|linkify }}</td></tr>
+            <tr><th>Kind</th><td>{{ object.get_run_kind_display }}</td></tr>
+            <tr><th>Status</th><td>{{ object.get_status_display }}</td></tr>
+            <tr><th>Finding Count</th><td>{{ object.finding_count }}</td></tr>
+            <tr><th>Started</th><td>{{ object.started_at|default:'—' }}</td></tr>
+            <tr><th>Completed</th><td>{{ object.completed_at|default:'—' }}</td></tr>
+            <tr><th>Description</th><td>{{ object.description|default:'—' }}</td></tr>
+          </table>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Findings</h2>
+        </div>
+        {% render_table findings_table 'inc/table.html' %}
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Run Summary</h2>
+        </div>
+        <div class="card-body">
+          <dl class="row mb-0">
+            <dt class="col-7">Open Findings</dt><dd class="col-5 text-end">{{ object.findings.count }}</dd>
+            <dt class="col-7">Fingerprint Scope</dt><dd class="col-5 text-end">{{ object.get_run_kind_display }}</dd>
+          </dl>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}

@@ -4,16 +4,37 @@ from netbox.tables import NetBoxTable, columns
 from netbox.tables.columns import ActionsColumn
 
 from .models import (
+    BESSDetail,
+    BuswaySectionDetail,
+    CapacityReservation,
     ElectricalNode,
     ElectricalNodePlacement,
     ElectricalSegment,
     ElectricalTerminal,
+    GeneratorDetail,
+    InstantiationArtifact,
+    InstantiationRun,
     InternalPowerBus,
     InternalPowerBusAttachment,
+    PhysicalElement,
+    PhysicalElementType,
+    PhysicalObjectBinding,
+    PhysicalSpace,
+    PlantProvenance,
+    PlantSourceDocument,
+    PlantSourceLayer,
+    PlantSourceSheet,
+    PowerArchitectureTemplate,
     PowerDomain,
+    PowerFinding,
     PowerSystem,
-    RackDeliveryPoint,
+    PowerHandoffPoint,
+    PowerValidationRun,
     RedundancyGroup,
+    SpatialFrame,
+    SpatialPlacement,
+    TransformerDetail,
+    UPSDetail,
 )
 from .services.workflow_urls import build_delivery_add_url, build_delivery_edit_url
 
@@ -58,6 +79,39 @@ class PowerDomainTable(OrganizationalModelTable):
         )
 
 
+class PowerValidationRunTable(OrganizationalModelTable):
+    name = tables.Column(linkify=True)
+    power_system = tables.Column(linkify=True)
+
+    class Meta(OrganizationalModelTable.Meta):
+        model = PowerValidationRun
+        fields = (
+            'pk', 'id', 'name', 'power_system', 'run_kind', 'status', 'finding_count', 'started_at',
+            'completed_at', 'description', 'comments', 'tags', 'created', 'last_updated', 'actions',
+        )
+        default_columns = (
+            'pk', 'name', 'power_system', 'run_kind', 'status', 'finding_count', 'started_at', 'completed_at',
+        )
+
+
+class PowerFindingTable(OrganizationalModelTable):
+    name = tables.Column(linkify=True)
+    run = tables.Column(linkify=True)
+    power_system = tables.Column(linkify=True)
+    assigned_object = tables.Column(linkify=True, orderable=False)
+
+    class Meta(OrganizationalModelTable.Meta):
+        model = PowerFinding
+        fields = (
+            'pk', 'id', 'name', 'run', 'power_system', 'finding_type', 'severity', 'status', 'assigned_object',
+            'assigned_to', 'suppressed_until', 'resolved_at', 'message', 'fingerprint', 'description', 'comments',
+            'tags', 'created', 'last_updated', 'actions',
+        )
+        default_columns = (
+            'pk', 'name', 'run', 'power_system', 'finding_type', 'severity', 'status', 'assigned_object', 'message',
+        )
+
+
 class RedundancyGroupTable(OrganizationalModelTable):
     name = tables.Column(linkify=True)
     power_system = tables.Column(linkify=True)
@@ -95,6 +149,53 @@ class PowerSystemSummaryTable(OrganizationalModelTable):
 
     def render_redundancy_group_count(self, record):
         return record.redundancy_groups.count()
+
+
+class PowerArchitectureTemplateTable(OrganizationalModelTable):
+    name = tables.Column(linkify=True)
+    actions = ActionsColumn(actions=())
+
+    class Meta(OrganizationalModelTable.Meta):
+        model = PowerArchitectureTemplate
+        fields = (
+            'pk', 'id', 'name', 'version', 'is_active', 'description', 'comments', 'tags',
+            'created', 'last_updated', 'actions',
+        )
+        default_columns = ('pk', 'name', 'version', 'is_active', 'description')
+
+
+class InstantiationRunTable(OrganizationalModelTable):
+    name = tables.Column(linkify=True)
+    power_system = tables.Column(linkify=True)
+    template = tables.Column(linkify=True)
+    actions = ActionsColumn(actions=())
+
+    class Meta(OrganizationalModelTable.Meta):
+        model = InstantiationRun
+        fields = (
+            'pk', 'id', 'name', 'power_system', 'template', 'status', 'dry_run',
+            'artifact_count', 'description', 'comments', 'tags', 'created',
+            'last_updated', 'actions',
+        )
+        default_columns = ('pk', 'name', 'power_system', 'template', 'status', 'dry_run', 'artifact_count')
+
+
+class InstantiationArtifactTable(OrganizationalModelTable):
+    run = tables.Column(linkify=True)
+    object = tables.Column(empty_values=(), orderable=False, verbose_name='Object')
+    actions = ActionsColumn(actions=())
+
+    class Meta(OrganizationalModelTable.Meta):
+        model = InstantiationArtifact
+        fields = (
+            'pk', 'id', 'run', 'artifact_type', 'action', 'status', 'template_key',
+            'stable_slug', 'object', 'description', 'comments', 'tags', 'created',
+            'last_updated', 'actions',
+        )
+        default_columns = ('pk', 'run', 'artifact_type', 'action', 'status', 'template_key', 'stable_slug', 'object')
+
+    def render_object(self, record):
+        return record.object or ''
 
 
 def render_domain_badges(power_domains):
@@ -158,26 +259,272 @@ class ElectricalSegmentTable(OrganizationalModelTable):
         )
 
 
-class RackDeliveryPointTable(OrganizationalModelTable):
+class PowerHandoffPointTable(OrganizationalModelTable):
     name = tables.Column(linkify=True)
     power_system = tables.Column(linkify=True)
     electrical_node = tables.Column(linkify=True)
     electrical_terminal = tables.Column(linkify=True)
-    rack = tables.Column(linkify=True)
-    device = tables.Column(linkify=True)
     power_port = tables.Column(linkify=True)
     expected_redundancy_group = tables.Column(linkify=True)
 
     class Meta(OrganizationalModelTable.Meta):
-        model = RackDeliveryPoint
+        model = PowerHandoffPoint
         fields = (
-            'pk', 'id', 'name', 'power_system', 'electrical_node', 'electrical_terminal', 'rack', 'device', 'power_port',
+            'pk', 'id', 'name', 'power_system', 'electrical_node', 'electrical_terminal', 'power_port',
             'expected_redundancy_group', 'delivery_role', 'feed_label', 'design_state', 'description', 'comments',
             'tags', 'created', 'last_updated', 'actions',
         )
         default_columns = (
-            'pk', 'name', 'power_system', 'electrical_node', 'electrical_terminal', 'rack', 'device', 'power_port',
+            'pk', 'name', 'power_system', 'electrical_node', 'electrical_terminal', 'power_port',
             'expected_redundancy_group', 'feed_label', 'design_state',
+        )
+
+
+class CapacityReservationTable(OrganizationalModelTable):
+    name = tables.Column(linkify=True)
+    node = tables.Column(linkify=True)
+    tenant = tables.Column(linkify=True)
+    rack = tables.Column(linkify=True)
+
+    class Meta(OrganizationalModelTable.Meta):
+        model = CapacityReservation
+        fields = (
+            'pk', 'id', 'name', 'node', 'tenant', 'rack', 'reserved_kw', 'status', 'valid_from',
+            'valid_until', 'description', 'notes', 'comments', 'tags', 'created', 'last_updated', 'actions',
+        )
+        default_columns = (
+            'pk', 'name', 'node', 'tenant', 'rack', 'reserved_kw', 'status', 'valid_from', 'valid_until',
+        )
+
+    def render_status(self, value, record):
+        colors = {
+            'planned': 'secondary',
+            'confirmed': 'primary',
+            'active': 'success',
+            'released': 'light',
+        }
+        return format_html(
+            '<span class="badge text-bg-{}">{}</span>',
+            colors.get(value, 'secondary'),
+            record.get_status_display(),
+        )
+
+
+class ElectricalNodeDetailTable(NetBoxTable):
+    node = tables.Column(linkify=True)
+    power_system = tables.Column(accessor='node__power_system', verbose_name='Power system', linkify=True)
+    actions = ActionsColumn(actions=('edit', 'delete'))
+
+    class Meta(NetBoxTable.Meta):
+        fields = ('pk', 'id', 'node', 'power_system', 'actions')
+        default_columns = ('pk', 'node', 'power_system')
+
+
+class UPSDetailTable(ElectricalNodeDetailTable):
+    class Meta(ElectricalNodeDetailTable.Meta):
+        model = UPSDetail
+        fields = ElectricalNodeDetailTable.Meta.fields + (
+            'ups_topology', 'battery_autonomy_minutes', 'module_count', 'module_rating_kw',
+            'parallel_group_id', 'maintenance_bypass_present',
+        )
+        default_columns = (
+            'pk', 'node', 'power_system', 'ups_topology', 'battery_autonomy_minutes',
+            'module_count', 'module_rating_kw', 'maintenance_bypass_present',
+        )
+
+
+class GeneratorDetailTable(ElectricalNodeDetailTable):
+    class Meta(ElectricalNodeDetailTable.Meta):
+        model = GeneratorDetail
+        fields = ElectricalNodeDetailTable.Meta.fields + (
+            'fuel_type', 'runtime_at_full_load_hours', 'cooling_type', 'ats_group_id',
+            'automatic_transfer_time_ms',
+        )
+        default_columns = (
+            'pk', 'node', 'power_system', 'fuel_type', 'runtime_at_full_load_hours',
+            'cooling_type', 'ats_group_id',
+        )
+
+
+class TransformerDetailTable(ElectricalNodeDetailTable):
+    class Meta(ElectricalNodeDetailTable.Meta):
+        model = TransformerDetail
+        fields = ElectricalNodeDetailTable.Meta.fields + (
+            'primary_kv', 'secondary_kv', 'kva_rating', 'vector_group', 'impedance_pct', 'cooling_type',
+        )
+        default_columns = (
+            'pk', 'node', 'power_system', 'primary_kv', 'secondary_kv', 'kva_rating',
+            'vector_group', 'impedance_pct',
+        )
+
+
+class BESSDetailTable(ElectricalNodeDetailTable):
+    class Meta(ElectricalNodeDetailTable.Meta):
+        model = BESSDetail
+        fields = ElectricalNodeDetailTable.Meta.fields + (
+            'technology', 'energy_capacity_kwh', 'peak_power_kw', 'charge_rate_kw',
+            'usable_soc_min_pct', 'usable_soc_max_pct',
+        )
+        default_columns = (
+            'pk', 'node', 'power_system', 'technology', 'energy_capacity_kwh',
+            'peak_power_kw', 'usable_soc_min_pct', 'usable_soc_max_pct',
+        )
+
+
+class BuswaySectionDetailTable(ElectricalNodeDetailTable):
+    busway_system = tables.Column(linkify=True)
+
+    class Meta(ElectricalNodeDetailTable.Meta):
+        model = BuswaySectionDetail
+        fields = ElectricalNodeDetailTable.Meta.fields + (
+            'busway_system', 'section_index', 'rated_ampacity_a', 'plug_count', 'plug_spacing_m',
+        )
+        default_columns = (
+            'pk', 'node', 'power_system', 'busway_system', 'section_index',
+            'rated_ampacity_a', 'plug_count', 'plug_spacing_m',
+        )
+
+
+class PlantSourceDocumentTable(OrganizationalModelTable):
+    name = tables.Column(linkify=True)
+    site = tables.Column(linkify=True)
+    location = tables.Column(linkify=True)
+
+    class Meta(OrganizationalModelTable.Meta):
+        model = PlantSourceDocument
+        fields = (
+            'pk', 'id', 'name', 'site', 'location', 'source_type', 'discipline', 'document_id',
+            'revision', 'issued_at', 'source_uri', 'checksum', 'description', 'comments', 'tags',
+            'created', 'last_updated', 'actions',
+        )
+        default_columns = (
+            'pk', 'name', 'site', 'location', 'source_type', 'discipline', 'document_id', 'revision',
+        )
+
+
+class PlantSourceSheetTable(OrganizationalModelTable):
+    name = tables.Column(linkify=True)
+    source_document = tables.Column(linkify=True)
+
+    class Meta(OrganizationalModelTable.Meta):
+        model = PlantSourceSheet
+        fields = (
+            'pk', 'id', 'name', 'source_document', 'sheet_number', 'title', 'scale', 'page_index',
+            'description', 'comments', 'tags', 'created', 'last_updated', 'actions',
+        )
+        default_columns = (
+            'pk', 'name', 'source_document', 'sheet_number', 'title', 'scale', 'page_index',
+        )
+
+
+class PlantSourceLayerTable(OrganizationalModelTable):
+    name = tables.Column(linkify=True)
+    source_sheet = tables.Column(linkify=True)
+
+    class Meta(OrganizationalModelTable.Meta):
+        model = PlantSourceLayer
+        fields = (
+            'pk', 'id', 'name', 'source_sheet', 'layer_name', 'layer_kind', 'discipline', 'is_visible',
+            'description', 'comments', 'tags', 'created', 'last_updated', 'actions',
+        )
+        default_columns = (
+            'pk', 'name', 'source_sheet', 'layer_name', 'layer_kind', 'discipline', 'is_visible',
+        )
+
+
+class PlantProvenanceTable(OrganizationalModelTable):
+    name = tables.Column(linkify=True)
+    assigned_object = tables.Column(linkify=True, orderable=False)
+    source_document = tables.Column(linkify=True)
+    source_sheet = tables.Column(linkify=True)
+    source_layer = tables.Column(linkify=True)
+
+    class Meta(OrganizationalModelTable.Meta):
+        model = PlantProvenance
+        fields = (
+            'pk', 'id', 'name', 'assigned_object', 'source_document', 'source_sheet', 'source_layer',
+            'source_ref', 'extraction_method', 'confidence', 'is_authoritative', 'extracted_at',
+            'description', 'comments', 'tags', 'created', 'last_updated', 'actions',
+        )
+        default_columns = (
+            'pk', 'name', 'assigned_object', 'source_document', 'source_sheet', 'source_ref',
+            'extraction_method', 'confidence', 'is_authoritative',
+        )
+
+
+class PhysicalSpaceTable(OrganizationalModelTable):
+    name = tables.Column(linkify=True)
+    site = tables.Column(linkify=True)
+    location = tables.Column(linkify=True)
+    spatial_frame = tables.Column(linkify=True)
+    parent_space = tables.Column(linkify=True)
+
+    class Meta(OrganizationalModelTable.Meta):
+        model = PhysicalSpace
+        fields = (
+            'pk', 'id', 'name', 'site', 'location', 'spatial_frame', 'parent_space', 'space_kind',
+            'floor_label', 'z_min', 'z_max', 'confidence', 'source_document', 'source_ref',
+            'description', 'comments', 'tags', 'created', 'last_updated', 'actions',
+        )
+        default_columns = (
+            'pk', 'name', 'site', 'location', 'space_kind', 'floor_label', 'spatial_frame',
+            'confidence',
+        )
+
+
+class PhysicalElementTypeTable(OrganizationalModelTable):
+    name = tables.Column(linkify=True)
+    default_color = columns.ColorColumn()
+
+    class Meta(OrganizationalModelTable.Meta):
+        model = PhysicalElementType
+        fields = (
+            'pk', 'id', 'name', 'discipline', 'element_kind', 'default_width', 'default_depth',
+            'default_height', 'default_color', 'symbol_key', 'is_pathway', 'is_supporting_structure',
+            'description', 'comments', 'tags', 'created', 'last_updated', 'actions',
+        )
+        default_columns = (
+            'pk', 'name', 'discipline', 'element_kind', 'default_color', 'symbol_key',
+            'is_pathway', 'is_supporting_structure',
+        )
+
+
+class PhysicalElementTable(OrganizationalModelTable):
+    name = tables.Column(linkify=True)
+    element_type = tables.Column(linkify=True)
+    site = tables.Column(linkify=True)
+    location = tables.Column(linkify=True)
+    physical_space = tables.Column(linkify=True)
+
+    class Meta(OrganizationalModelTable.Meta):
+        model = PhysicalElement
+        fields = (
+            'pk', 'id', 'name', 'element_type', 'site', 'location', 'physical_space', 'label', 'role',
+            'manufacturer', 'model_name', 'asset_tag', 'install_state', 'design_state', 'source_label',
+            'confidence', 'description', 'comments', 'tags', 'created', 'last_updated', 'actions',
+        )
+        default_columns = (
+            'pk', 'name', 'element_type', 'site', 'location', 'physical_space', 'role',
+            'install_state', 'design_state', 'confidence',
+        )
+
+
+class PhysicalObjectBindingTable(OrganizationalModelTable):
+    name = tables.Column(linkify=True)
+    physical_element = tables.Column(linkify=True)
+    spatial_placement = tables.Column(linkify=True)
+    assigned_object = tables.Column(linkify=True, orderable=False)
+
+    class Meta(OrganizationalModelTable.Meta):
+        model = PhysicalObjectBinding
+        fields = (
+            'pk', 'id', 'name', 'physical_element', 'spatial_placement', 'assigned_object',
+            'binding_role', 'confidence', 'is_primary', 'description', 'comments', 'tags',
+            'created', 'last_updated', 'actions',
+        )
+        default_columns = (
+            'pk', 'name', 'physical_element', 'spatial_placement', 'assigned_object',
+            'binding_role', 'confidence', 'is_primary',
         )
 
 
@@ -202,10 +549,49 @@ class ElectricalNodePlacementTable(OrganizationalModelTable):
         )
 
 
-class RackDeliverySummaryTable(tables.Table):
+class SpatialFrameTable(OrganizationalModelTable):
+    name = tables.Column(linkify=True)
+    site = tables.Column(linkify=True)
+    location = tables.Column(linkify=True)
+    parent_frame = tables.Column(linkify=True)
+
+    class Meta(OrganizationalModelTable.Meta):
+        model = SpatialFrame
+        fields = (
+            'pk', 'id', 'name', 'site', 'location', 'parent_frame', 'origin_x_in_parent',
+            'origin_y_in_parent', 'width', 'height', 'units', 'axis_orientation', 'source_document',
+            'source_ref', 'confidence', 'metadata', 'description', 'comments', 'tags', 'created',
+            'last_updated', 'actions',
+        )
+        default_columns = (
+            'pk', 'name', 'site', 'location', 'parent_frame', 'width', 'height',
+            'units', 'axis_orientation', 'confidence',
+        )
+
+
+class SpatialPlacementTable(OrganizationalModelTable):
+    name = tables.Column(linkify=True)
+    spatial_frame = tables.Column(linkify=True)
+    assigned_object = tables.Column(linkify=True, orderable=False)
+
+    class Meta(OrganizationalModelTable.Meta):
+        model = SpatialPlacement
+        fields = (
+            'pk', 'id', 'name', 'spatial_frame', 'assigned_object', 'x', 'y', 'z', 'width',
+            'depth', 'height', 'rotation_degrees', 'anchor', 'placement_kind', 'confidence',
+            'source_document', 'source_ref', 'description', 'comments', 'tags', 'created',
+            'last_updated', 'actions',
+        )
+        default_columns = (
+            'pk', 'name', 'spatial_frame', 'assigned_object', 'x', 'y', 'z',
+            'placement_kind', 'confidence',
+        )
+
+
+class PowerHandoffSummaryTable(tables.Table):
     node = tables.Column(linkify=True)
     terminal = tables.Column(linkify=True)
-    modeled_delivery = tables.Column(empty_values=(), verbose_name='Modeled Delivery')
+    modeled_delivery = tables.Column(empty_values=(), verbose_name='Modeled Power Handoff')
     modeling_status = tables.Column(empty_values=(), verbose_name='Modeling')
     workflow = tables.Column(empty_values=(), verbose_name='Workflow')
     upstream_domains = tables.Column(empty_values=(), verbose_name='Upstream Domains')
@@ -258,7 +644,7 @@ class RackDeliverySummaryTable(tables.Table):
             return '—'
 
         return format_html(
-            '<a href="{}">Model delivery point</a>',
+            '<a href="{}">Model power handoff point</a>',
             build_delivery_add_url(
                 self.power_system,
                 return_url=self.return_url or '',
@@ -274,13 +660,16 @@ class RackDeliverySummaryTable(tables.Table):
         return 'Compliant' if record.is_redundancy_compliant else 'Needs attention'
 
     def _describe_delivery_point(self, delivery_point):
-        target = delivery_point.rack or delivery_point.device or delivery_point.power_port
+        target = delivery_point.power_port
         parts = [delivery_point.feed_label or delivery_point.name]
         if target is not None:
             parts.append(str(target))
         if delivery_point.expected_redundancy_group is not None:
             parts.append(f'expected {delivery_point.expected_redundancy_group.name}')
         return ' / '.join(parts)
+
+
+RackDeliverySummaryTable = PowerHandoffSummaryTable
 
 
 class InternalPowerBusTable(OrganizationalModelTable):

@@ -1,0 +1,157 @@
+.power-layout-map .card-body {
+  overflow-x: auto;
+}
+
+.power-layout-svg {
+  display: block;
+  width: 100%;
+  min-height: 22rem;
+  max-height: 38rem;
+  border: 1px solid var(--bs-border-color, #dee2e6);
+  background: var(--bs-body-bg, #fff);
+}
+
+.power-layout-frame {
+  fill: var(--bs-tertiary-bg, #f8f9fa);
+  stroke: var(--bs-border-color, #dee2e6);
+  stroke-width: 0.5;
+  vector-effect: non-scaling-stroke;
+}
+
+.power-layout-segment {
+  stroke: #6c757d;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  opacity: 0.65;
+  transition: opacity 0.15s ease, stroke 0.15s ease, stroke-width 0.15s ease;
+  vector-effect: non-scaling-stroke;
+}
+
+.power-layout-node circle {
+  stroke: #fff;
+  stroke-width: 0.8;
+  transition: stroke 0.15s ease, stroke-width 0.15s ease;
+  vector-effect: non-scaling-stroke;
+}
+
+.power-layout-asset rect {
+  fill: #20c997;
+  stroke: #087f5b;
+  stroke-width: 0.8;
+  transition: stroke 0.15s ease, stroke-width 0.15s ease;
+  vector-effect: non-scaling-stroke;
+}
+
+.power-layout-asset-device rect {
+  fill: #74c0fc;
+  stroke: #1864ab;
+}
+
+.power-layout-handoff {
+  cursor: pointer;
+  outline: none;
+  transition: opacity 0.15s ease;
+}
+
+.power-layout-handoff circle {
+  fill: #fff3bf;
+  stroke: #f08c00;
+  stroke-width: 1.1;
+  transition: stroke 0.15s ease, stroke-width 0.15s ease;
+  vector-effect: non-scaling-stroke;
+}
+
+.power-layout-handoff path {
+  fill: #f08c00;
+  stroke: #fff;
+  stroke-width: 0.6;
+  vector-effect: non-scaling-stroke;
+}
+
+.power-layout-handoff:focus-visible circle {
+  stroke: #0d6efd;
+  stroke-width: 2.2;
+}
+
+.power-layout-map.has-active-trace [data-power-map-item].is-trace-dimmed {
+  opacity: 0.2;
+}
+
+.power-layout-map.has-active-trace [data-power-map-item].is-trace-active {
+  opacity: 1;
+}
+
+.power-layout-map.has-active-trace .power-layout-segment.is-trace-active {
+  stroke: #d63384;
+  stroke-width: 3;
+}
+
+.power-layout-map.has-active-trace .power-layout-node.is-trace-active circle,
+.power-layout-map.has-active-trace .power-layout-asset.is-trace-active rect {
+  stroke: #d63384;
+  stroke-width: 1.8;
+}
+
+.power-layout-map.has-active-trace .power-layout-handoff.is-trace-active circle {
+  stroke: #d63384;
+  stroke-width: 2;
+}
+
+[data-power-trace-key] {
+  transition: opacity 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+[data-power-trace-key].is-trace-active {
+  --bs-table-bg: rgba(214, 51, 132, 0.12);
+}
+
+tr[data-power-trace-key].is-trace-active {
+  box-shadow: inset 3px 0 0 #d63384;
+}
+
+tr[data-power-trace-key].is-trace-dimmed {
+  opacity: 0.58;
+}
+
+.power-layout-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  font-size: 0.875rem;
+  color: var(--bs-secondary-color, #6c757d);
+}
+
+.power-layout-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.power-layout-legend-swatch {
+  display: inline-block;
+  width: 0.75rem;
+  height: 0.75rem;
+  border: 1px solid transparent;
+}
+
+.power-layout-legend-swatch-node {
+  border-radius: 50%;
+  background: #0d6efd;
+}
+
+.power-layout-legend-swatch-segment {
+  width: 1.25rem;
+  height: 0.2rem;
+  background: #6c757d;
+}
+
+.power-layout-legend-swatch-asset {
+  background: #20c997;
+  border-color: #087f5b;
+}
+
+.power-layout-legend-swatch-handoff {
+  border-radius: 50%;
+  background: #fff3bf;
+  border-color: #f08c00;
+}

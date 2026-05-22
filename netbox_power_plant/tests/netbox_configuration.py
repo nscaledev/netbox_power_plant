@@ -7,19 +7,33 @@ from netbox.configuration_testing import *  # noqa: F401,F403
 DEVELOPER = True
 
 
-DATABASES = deepcopy(DATABASES)
-DATABASES['default'].update({
-    'NAME': os.getenv('NETBOX_TEST_DB_NAME', DATABASES['default']['NAME']),
-    'USER': os.getenv('NETBOX_TEST_DB_USER', DATABASES['default']['USER']),
-    'PASSWORD': os.getenv('NETBOX_TEST_DB_PASSWORD', DATABASES['default']['PASSWORD']),
-    'HOST': os.getenv('NETBOX_TEST_DB_HOST', DATABASES['default']['HOST']),
-    'PORT': os.getenv('NETBOX_TEST_DB_PORT', DATABASES['default']['PORT']),
-})
-DATABASES['default'].setdefault('TEST', {})
-DATABASES['default']['TEST']['NAME'] = os.getenv(
-    'NETBOX_TEST_DB_TEST_NAME',
-    f"test_{DATABASES['default']['NAME']}_power_plant",
-)
+if 'DATABASES' in globals():
+    DATABASES = deepcopy(DATABASES)
+    DATABASES['default'].update({
+        'NAME': os.getenv('NETBOX_TEST_DB_NAME', DATABASES['default']['NAME']),
+        'USER': os.getenv('NETBOX_TEST_DB_USER', DATABASES['default']['USER']),
+        'PASSWORD': os.getenv('NETBOX_TEST_DB_PASSWORD', DATABASES['default']['PASSWORD']),
+        'HOST': os.getenv('NETBOX_TEST_DB_HOST', DATABASES['default']['HOST']),
+        'PORT': os.getenv('NETBOX_TEST_DB_PORT', DATABASES['default']['PORT']),
+    })
+    DATABASES['default'].setdefault('TEST', {})
+    DATABASES['default']['TEST']['NAME'] = os.getenv(
+        'NETBOX_TEST_DB_TEST_NAME',
+        f"test_{DATABASES['default']['NAME']}_power_plant",
+    )
+else:
+    DATABASE = deepcopy(DATABASE)
+    DATABASE.update({
+        'NAME': os.getenv('NETBOX_TEST_DB_NAME', DATABASE['NAME']),
+        'USER': os.getenv('NETBOX_TEST_DB_USER', DATABASE['USER']),
+        'PASSWORD': os.getenv('NETBOX_TEST_DB_PASSWORD', DATABASE['PASSWORD']),
+        'HOST': os.getenv('NETBOX_TEST_DB_HOST', DATABASE['HOST']),
+        'PORT': os.getenv('NETBOX_TEST_DB_PORT', DATABASE['PORT']),
+    })
+    TEST_DATABASE_NAME = os.getenv(
+        'NETBOX_TEST_DB_TEST_NAME',
+        f"test_{DATABASE['NAME']}_power_plant",
+    )
 
 REDIS = deepcopy(REDIS)
 for section_name in ('tasks', 'caching'):

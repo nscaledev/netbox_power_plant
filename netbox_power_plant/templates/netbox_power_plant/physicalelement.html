@@ -1,0 +1,52 @@
+{% extends 'generic/object.html' %}
+{% load helpers %}
+
+{% block content %}
+  <div class="row">
+    <div class="col-md-8">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Physical Element Details</h2>
+        </div>
+        <div class="card-body">
+          <table class="table table-hover attr-table mb-0">
+            <tr><th>Element Type</th><td>{{ object.element_type|linkify }}</td></tr>
+            <tr><th>Site</th><td>{{ object.site|linkify }}</td></tr>
+            <tr><th>Location</th><td>{{ object.location|linkify|default:'—' }}</td></tr>
+            <tr><th>Physical Space</th><td>{{ object.physical_space|linkify|default:'—' }}</td></tr>
+            <tr><th>Label</th><td>{{ object.label|default:'—' }}</td></tr>
+            <tr><th>Role</th><td>{{ object.role|default:'—' }}</td></tr>
+            <tr><th>Manufacturer</th><td>{{ object.manufacturer|default:'—' }}</td></tr>
+            <tr><th>Model Name</th><td>{{ object.model_name|default:'—' }}</td></tr>
+            <tr><th>Asset Tag</th><td>{{ object.asset_tag|default:'—' }}</td></tr>
+            <tr><th>Install State</th><td>{{ object.get_install_state_display }}</td></tr>
+            <tr><th>Design State</th><td>{{ object.get_design_state_display }}</td></tr>
+            <tr><th>Source Label</th><td>{{ object.source_label|default:'—' }}</td></tr>
+            <tr><th>Confidence</th><td>{{ object.get_confidence_display }}</td></tr>
+            <tr><th>Description</th><td>{{ object.description|default:'—' }}</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Bindings</h2>
+        </div>
+        <div class="card-body">
+          <dl class="row mb-0">
+            <dt class="col-7">Object Bindings</dt><dd class="col-5 text-end">{{ object.object_bindings.count }}</dd>
+          </dl>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Metadata</h2>
+        </div>
+        <div class="card-body">
+          <pre class="mb-0">{{ object.metadata|default:'{}' }}</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}

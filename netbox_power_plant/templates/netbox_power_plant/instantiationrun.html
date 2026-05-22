@@ -1,0 +1,34 @@
+{% extends 'generic/object.html' %}
+{% load helpers %}
+{% load render_table from django_tables2 %}
+
+{% block content %}
+  <div class="row mb-4">
+    <div class="col-md-8">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Instantiation Run Details</h2>
+        </div>
+        <div class="card-body">
+          <table class="table table-hover attr-table mb-0">
+            <tr><th>Power System</th><td>{{ object.power_system|linkify }}</td></tr>
+            <tr><th>Template</th><td>{{ object.template|linkify }}</td></tr>
+            <tr><th>Status</th><td>{{ object.status }}</td></tr>
+            <tr><th>Dry Run</th><td>{{ object.dry_run|yesno:'Yes,No' }}</td></tr>
+            <tr><th>Artifacts</th><td>{{ object.artifact_count }}</td></tr>
+            <tr><th>Description</th><td>{{ object.description|default:'-' }}</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h2 class="card-title">Artifacts</h2>
+    </div>
+    <div class="card-body">
+      {% render_table artifact_table 'inc/table.html' %}
+    </div>
+  </div>
+{% endblock %}

@@ -1,0 +1,43 @@
+{% extends 'generic/object.html' %}
+{% load helpers %}
+
+{% block content %}
+  <div class="row">
+    <div class="col-md-8">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Spatial Frame Details</h2>
+        </div>
+        <div class="card-body">
+          <table class="table table-hover attr-table mb-0">
+            <tr><th>Site</th><td>{{ object.site|linkify }}</td></tr>
+            <tr><th>Location</th><td>{{ object.location|linkify|default:'—' }}</td></tr>
+            <tr><th>Parent Frame</th><td>{{ object.parent_frame|linkify|default:'—' }}</td></tr>
+            <tr><th>Origin X in Parent</th><td>{{ object.origin_x_in_parent|default:'—' }}</td></tr>
+            <tr><th>Origin Y in Parent</th><td>{{ object.origin_y_in_parent|default:'—' }}</td></tr>
+            <tr><th>Width</th><td>{{ object.width|default:'—' }}</td></tr>
+            <tr><th>Height</th><td>{{ object.height|default:'—' }}</td></tr>
+            <tr><th>Units</th><td>{{ object.units }}</td></tr>
+            <tr><th>Axis Orientation</th><td>{{ object.get_axis_orientation_display }}</td></tr>
+            <tr><th>Source Document</th><td>{{ object.source_document|default:'—' }}</td></tr>
+            <tr><th>Source Ref</th><td>{{ object.source_ref|default:'—' }}</td></tr>
+            <tr><th>Description</th><td>{{ object.description|default:'—' }}</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Placements</h2>
+        </div>
+        <div class="card-body">
+          <dl class="row mb-0">
+            <dt class="col-7">Placements</dt><dd class="col-5 text-end">{{ object.placements.count }}</dd>
+            <dt class="col-7">Child Frames</dt><dd class="col-5 text-end">{{ object.child_frames.count }}</dd>
+          </dl>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}

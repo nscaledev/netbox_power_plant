@@ -1,0 +1,27 @@
+{% extends 'generic/object.html' %}
+{% load helpers %}
+
+{% block content %}
+  <div class="row">
+    <div class="col-md-8">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">UPS Detail</h2>
+        </div>
+        <div class="card-body">
+          <table class="table table-hover attr-table mb-0">
+            <tr><th>Electrical Node</th><td>{{ object.node|linkify }}</td></tr>
+            <tr><th>Power System</th><td>{{ object.node.power_system|linkify }}</td></tr>
+            <tr><th>Site</th><td>{{ object.node.site|linkify }}</td></tr>
+            <tr><th>UPS Topology</th><td>{{ object.ups_topology|default:'—' }}</td></tr>
+            <tr><th>Battery Autonomy</th><td>{% if object.battery_autonomy_minutes %}{{ object.battery_autonomy_minutes }} minutes{% else %}—{% endif %}</td></tr>
+            <tr><th>Module Count</th><td>{{ object.module_count|default:'—' }}</td></tr>
+            <tr><th>Module Rating</th><td>{% if object.module_rating_kw %}{{ object.module_rating_kw }} kW{% else %}—{% endif %}</td></tr>
+            <tr><th>Parallel Group</th><td>{{ object.parallel_group_id|default:'—' }}</td></tr>
+            <tr><th>Maintenance Bypass</th><td>{{ object.maintenance_bypass_present|yesno:'Present,Not present' }}</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}

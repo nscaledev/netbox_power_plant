@@ -7,7 +7,7 @@
   <div class="card-body">
     {% if has_power_plant_paths %}
       {% if delivery_points %}
-        <h3 class="h5">Delivery Points</h3>
+        <h3 class="h5">Power Handoff Points</h3>
         <ul class="list-unstyled mb-3">
           {% for delivery_point in delivery_points %}
             <li class="mb-2">
@@ -35,7 +35,7 @@
       {% endif %}
     {% else %}
       <p class="text-secondary mb-0">
-        This power port is not yet attached to a Power Plant delivery point or internal power bus.
+        This power port is not yet attached to a Power Plant handoff point or internal power bus.
       </p>
     {% endif %}
   </div>

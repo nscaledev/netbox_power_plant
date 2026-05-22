@@ -1,0 +1,255 @@
+.spatial-review-map .card-body {
+  overflow-x: auto;
+}
+
+.spatial-review-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(16rem, 22rem);
+  gap: 1rem;
+  align-items: stretch;
+}
+
+.spatial-review-canvas {
+  min-width: 36rem;
+}
+
+.spatial-review-svg {
+  display: block;
+  width: 100%;
+  min-height: 24rem;
+  max-height: 42rem;
+  border: 1px solid var(--bs-border-color, #dee2e6);
+  background: var(--bs-body-bg, #fff);
+}
+
+.spatial-review-frame {
+  fill: var(--bs-tertiary-bg, #f8f9fa);
+  stroke: var(--bs-border-color, #dee2e6);
+  stroke-width: 0.5;
+  vector-effect: non-scaling-stroke;
+}
+
+.spatial-review-grid-line {
+  stroke: rgba(108, 117, 125, 0.28);
+  stroke-width: 0.35;
+  vector-effect: non-scaling-stroke;
+}
+
+.spatial-review-axis-line {
+  stroke: rgba(73, 80, 87, 0.55);
+  stroke-width: 0.5;
+  vector-effect: non-scaling-stroke;
+}
+
+.spatial-review-tick-label {
+  fill: var(--bs-secondary-color, #6c757d);
+  font-size: 3px;
+  pointer-events: none;
+  user-select: none;
+}
+
+.spatial-review-object {
+  cursor: pointer;
+  outline: none;
+}
+
+.spatial-review-object rect,
+.spatial-review-object circle {
+  transition: fill 0.15s ease, opacity 0.15s ease, stroke 0.15s ease, stroke-width 0.15s ease;
+  vector-effect: non-scaling-stroke;
+}
+
+.spatial-review-object text {
+  fill: var(--bs-body-color, #212529);
+  font-size: 4px;
+  font-weight: 600;
+  pointer-events: none;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.8);
+  user-select: none;
+}
+
+.spatial-review-space rect {
+  fill: rgba(13, 110, 253, 0.12);
+  stroke: #0d6efd;
+  stroke-width: 0.75;
+}
+
+.spatial-review-space .spatial-review-shape {
+  cursor: move;
+}
+
+.spatial-review-element rect,
+.spatial-review-element circle,
+.spatial-review-placement rect,
+.spatial-review-placement circle {
+  fill: rgba(32, 201, 151, 0.18);
+  stroke: #087f5b;
+  stroke-width: 0.65;
+}
+
+.spatial-review-status-approved rect,
+.spatial-review-status-approved circle {
+  fill: rgba(25, 135, 84, 0.16);
+  stroke: #198754;
+}
+
+.spatial-review-status-review-required rect,
+.spatial-review-status-review-required circle,
+.spatial-review-status-operator-review-required rect,
+.spatial-review-status-operator-review-required circle {
+  fill: rgba(255, 193, 7, 0.2);
+  stroke: #b58100;
+  stroke-dasharray: 2 1.25;
+}
+
+.spatial-review-status-operator-corrected rect,
+.spatial-review-status-operator-corrected circle {
+  fill: rgba(13, 110, 253, 0.2);
+  stroke: #0d6efd;
+  stroke-dasharray: 3 1.5;
+}
+
+.spatial-review-status-unknown rect,
+.spatial-review-status-unknown circle,
+.spatial-review-status-unavailable rect,
+.spatial-review-status-unavailable circle {
+  fill: rgba(108, 117, 125, 0.14);
+  stroke: #6c757d;
+  stroke-dasharray: 1.5 1.5;
+}
+
+.spatial-review-object:hover rect,
+.spatial-review-object:hover circle,
+.spatial-review-object:focus-visible rect,
+.spatial-review-object:focus-visible circle,
+.spatial-review-object.is-selected rect,
+.spatial-review-object.is-selected circle {
+  stroke: #d63384;
+  stroke-width: 1.6;
+  opacity: 1;
+}
+
+.spatial-review-map.has-selection .spatial-review-object:not(.is-selected) {
+  opacity: 0.52;
+}
+
+.spatial-review-object.has-unsaved-geometry .spatial-review-shape,
+.spatial-review-object.has-unsaved-geometry .spatial-review-edit-handle {
+  fill: rgba(214, 51, 132, 0.18);
+  stroke: #d63384;
+  stroke-dasharray: 2 1;
+}
+
+.spatial-review-detail {
+  border: 1px solid var(--bs-border-color, #dee2e6);
+  background: var(--bs-tertiary-bg, #f8f9fa);
+  min-height: 100%;
+  padding: 1rem;
+}
+
+.spatial-review-detail-title {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.spatial-review-detail-meta {
+  color: var(--bs-secondary-color, #6c757d);
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
+}
+
+.spatial-review-detail dl {
+  margin-bottom: 1rem;
+}
+
+.spatial-review-detail dt {
+  color: var(--bs-secondary-color, #6c757d);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.spatial-review-detail dd {
+  margin-bottom: 0.6rem;
+}
+
+.spatial-review-empty-detail {
+  color: var(--bs-secondary-color, #6c757d);
+}
+
+.spatial-review-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  font-size: 0.875rem;
+  color: var(--bs-secondary-color, #6c757d);
+}
+
+.spatial-review-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.spatial-review-legend-swatch {
+  display: inline-block;
+  width: 0.75rem;
+  height: 0.75rem;
+  border: 1px solid transparent;
+}
+
+.spatial-review-legend-swatch-approved {
+  background: rgba(25, 135, 84, 0.16);
+  border-color: #198754;
+}
+
+.spatial-review-legend-swatch-corrected {
+  background: rgba(13, 110, 253, 0.2);
+  border-color: #0d6efd;
+}
+
+.spatial-review-legend-swatch-review-required {
+  background: rgba(255, 193, 7, 0.2);
+  border-color: #b58100;
+}
+
+.spatial-review-legend-swatch-unknown {
+  background: rgba(108, 117, 125, 0.14);
+  border-color: #6c757d;
+}
+
+.spatial-review-legend-swatch-placement {
+  background: rgba(32, 201, 151, 0.18);
+  border-color: #087f5b;
+}
+
+.spatial-review-counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.spatial-review-edit-handle {
+  display: none;
+  fill: #fff;
+  stroke: #d63384;
+  stroke-width: 0.8;
+  cursor: nwse-resize;
+  vector-effect: non-scaling-stroke;
+}
+
+.spatial-review-object.is-selected .spatial-review-edit-handle {
+  display: block;
+}
+
+@media (max-width: 991.98px) {
+  .spatial-review-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .spatial-review-canvas {
+    min-width: 30rem;
+  }
+}

@@ -1,0 +1,26 @@
+{% extends 'generic/object.html' %}
+{% load helpers %}
+
+{% block content %}
+  <div class="row">
+    <div class="col-md-8">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Instantiation Artifact Details</h2>
+        </div>
+        <div class="card-body">
+          <table class="table table-hover attr-table mb-0">
+            <tr><th>Run</th><td>{{ object.run|linkify }}</td></tr>
+            <tr><th>Artifact Type</th><td>{{ object.artifact_type }}</td></tr>
+            <tr><th>Action</th><td>{{ object.action }}</td></tr>
+            <tr><th>Status</th><td>{{ object.status }}</td></tr>
+            <tr><th>Template Key</th><td>{{ object.template_key }}</td></tr>
+            <tr><th>Stable Slug</th><td>{{ object.stable_slug }}</td></tr>
+            <tr><th>Object</th><td>{{ object.object|default:'-' }}</td></tr>
+            <tr><th>Description</th><td>{{ object.description|default:'-' }}</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}

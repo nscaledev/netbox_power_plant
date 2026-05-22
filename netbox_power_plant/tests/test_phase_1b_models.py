@@ -19,7 +19,7 @@ from netbox_power_plant.models import (
     InternalPowerBusAttachment,
     PowerDomain,
     PowerSystem,
-    RackDeliveryPoint,
+    PowerHandoffPoint,
 )
 
 
@@ -283,7 +283,7 @@ class Phase1BModelTestCase(TestCase):
         with self.assertRaises(ValidationError):
             attachment.full_clean()
 
-    def test_rack_delivery_point_rejects_multiple_targets(self):
+    def test_power_handoff_point_requires_power_port_target(self):
         node = ElectricalNode.objects.create(
             name='Rack Boundary Node',
             slug='rack-boundary-node',
@@ -299,22 +299,12 @@ class Phase1BModelTestCase(TestCase):
             direction=TerminalDirectionChoices.DIRECTION_SINK,
             supply_type=SupplyTypeChoices.SUPPLY_AC,
         )
-        device = Device(
-            name='Boundary Device A',
-            device_type=self.device_type,
-            role=self.device_role,
-            site=self.site,
-            location=self.location,
-        )
-        point = RackDeliveryPoint(
+        point = PowerHandoffPoint(
             name='Rack A Delivery',
             slug='rack-a-delivery',
             power_system=self.power_system,
             electrical_node=node,
             electrical_terminal=terminal,
-            rack=self.rack,
-            device=device,
-            power_port=self.power_port,
         )
 
         with self.assertRaises(ValidationError):
@@ -344,19 +334,19 @@ class Phase1BModelTestCase(TestCase):
             direction=TerminalDirectionChoices.DIRECTION_SINK,
             supply_type=SupplyTypeChoices.SUPPLY_AC,
         )
-        point = RackDeliveryPoint(
+        point = PowerHandoffPoint(
             name='Rack Mismatch Delivery',
             slug='rack-mismatch-delivery',
             power_system=self.power_system,
             electrical_node=node_b,
             electrical_terminal=terminal,
-            rack=self.rack,
+            power_port=self.power_port,
         )
 
         with self.assertRaises(ValidationError):
             point.full_clean()
 
-    def test_rack_delivery_point_rejects_rack_outside_power_system_location(self):
+    def test_power_handoff_point_rejects_missing_power_port(self):
         node = ElectricalNode.objects.create(
             name='Rack Boundary Node Location',
             slug='rack-boundary-node-location',
@@ -365,12 +355,11 @@ class Phase1BModelTestCase(TestCase):
             location=self.location,
             node_kind=NodeKindChoices.KIND_RACK_CIRCUIT_TERMINATOR,
         )
-        point = RackDeliveryPoint(
+        point = PowerHandoffPoint(
             name='Rack Wrong Location Delivery',
             slug='rack-wrong-location-delivery',
             power_system=self.power_system,
             electrical_node=node,
-            rack=self.other_location_rack,
         )
 
         with self.assertRaises(ValidationError):
@@ -385,7 +374,7 @@ class Phase1BModelTestCase(TestCase):
             location=self.location,
             node_kind=NodeKindChoices.KIND_RACK_CIRCUIT_TERMINATOR,
         )
-        point = RackDeliveryPoint(
+        point = PowerHandoffPoint(
             name='Power Port Wrong Location Delivery',
             slug='power-port-wrong-location-delivery',
             power_system=self.power_system,
@@ -396,7 +385,7 @@ class Phase1BModelTestCase(TestCase):
         with self.assertRaises(ValidationError):
             point.full_clean()
 
-    def test_rack_delivery_point_accepts_matching_terminal_and_rack(self):
+    def test_power_handoff_point_accepts_matching_terminal_and_power_port(self):
         node = ElectricalNode.objects.create(
             name='Rack Boundary Node Valid',
             slug='rack-boundary-node-valid',
@@ -412,13 +401,13 @@ class Phase1BModelTestCase(TestCase):
             direction=TerminalDirectionChoices.DIRECTION_SINK,
             supply_type=SupplyTypeChoices.SUPPLY_AC,
         )
-        point = RackDeliveryPoint(
+        point = PowerHandoffPoint(
             name='Rack Valid Delivery',
             slug='rack-valid-delivery',
             power_system=self.power_system,
             electrical_node=node,
             electrical_terminal=terminal,
-            rack=self.rack,
+            power_port=self.power_port,
             feed_label='A-feed',
         )
 
@@ -440,7 +429,7 @@ class Phase1BModelTestCase(TestCase):
             direction=TerminalDirectionChoices.DIRECTION_SINK,
             supply_type=SupplyTypeChoices.SUPPLY_AC,
         )
-        point = RackDeliveryPoint(
+        point = PowerHandoffPoint(
             name='Power Port Valid Delivery',
             slug='power-port-valid-delivery',
             power_system=self.power_system,

@@ -1,0 +1,44 @@
+{% extends 'generic/object.html' %}
+{% load helpers %}
+
+{% block content %}
+  <div class="row">
+    <div class="col-md-8">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Capacity Reservation Details</h2>
+        </div>
+        <div class="card-body">
+          <table class="table table-hover attr-table mb-0">
+            <tr><th>Electrical Node</th><td>{{ object.node|linkify }}</td></tr>
+            <tr><th>Power System</th><td>{{ object.node.power_system|linkify }}</td></tr>
+            <tr><th>Site</th><td>{{ object.node.site|linkify }}</td></tr>
+            <tr><th>Tenant</th><td>{{ object.tenant|linkify }}</td></tr>
+            <tr><th>Rack</th><td>{{ object.rack|linkify|default:'—' }}</td></tr>
+            <tr><th>Reserved Capacity</th><td>{{ object.reserved_kw }} kW</td></tr>
+            <tr><th>Status</th><td>{{ object.get_status_display }}</td></tr>
+            <tr><th>Valid From</th><td>{{ object.valid_from|default:'—' }}</td></tr>
+            <tr><th>Valid Until</th><td>{{ object.valid_until|default:'—' }}</td></tr>
+            <tr><th>Description</th><td>{{ object.description|default:'—' }}</td></tr>
+            <tr><th>Notes</th><td>{{ object.notes|linebreaksbr|default:'—' }}</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Lifecycle</h2>
+        </div>
+        <div class="card-body">
+          <dl class="mb-0">
+            <dt>Planned</dt><dd class="text-secondary">Forecasted demand, not yet committed.</dd>
+            <dt>Confirmed</dt><dd class="text-secondary">Committed allocation awaiting activation.</dd>
+            <dt>Active</dt><dd class="text-secondary">Subtracts from capacity headroom.</dd>
+            <dt>Released</dt><dd class="text-secondary mb-0">No longer reserves capacity.</dd>
+          </dl>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}

@@ -1,6 +1,12 @@
 from importlib.metadata import PackageNotFoundError, version
 
-from netbox.plugins import PluginConfig
+try:
+    from netbox.plugins import PluginConfig
+except ModuleNotFoundError:
+    PluginConfig = object
+    _NETBOX_AVAILABLE = False
+else:
+    _NETBOX_AVAILABLE = True
 
 
 try:
@@ -26,8 +32,13 @@ class PowerPlantConfig(PluginConfig):
     template_extensions = 'template_extensions.template_extensions'
 
     def ready(self):
+        if not _NETBOX_AVAILABLE:
+            return
         super().ready()
         self._extend_power_component_type_choices()
+        # Register optional cross-plugin cache invalidation hooks. The service
+        # degrades to no-op behavior when netbox_multiplanar_fabrics is absent.
+        from netbox_power_plant.services import cross_plugin  # noqa: F401
 
     def _extend_power_component_type_choices(self):
         # NetBox 4.2 exposes these connector types as static ChoiceSets without

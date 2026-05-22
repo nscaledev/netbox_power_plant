@@ -2,6 +2,7 @@ from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 
 from netbox_power_plant.choices import (
+    NodeKindChoices,
     PhaseModeChoices,
     SegmentKindChoices,
     SupplyTypeChoices,
@@ -9,7 +10,7 @@ from netbox_power_plant.choices import (
     TopologyStateChoices,
 )
 from netbox_power_plant.services.graph import PowerGraphBuilder
-from netbox_power_plant.services.rack_delivery import build_rack_delivery_summary
+from netbox_power_plant.services.rack_delivery import build_power_handoff_summary
 
 
 def validate_topology_terminal(terminal):
@@ -77,6 +78,8 @@ def run_topology_checks(power_system):
                 'object': node,
             })
 
+    findings.extend(build_missing_detail_findings(snapshot.nodes_by_id.values()))
+
     orphan_terminal_ids = snapshot.orphan_terminal_ids()
     for terminal_id in sorted(orphan_terminal_ids):
         terminal = snapshot.terminals_by_id[terminal_id]
@@ -104,15 +107,15 @@ def run_topology_checks(power_system):
             'node_ids': sorted(cycle_node_ids),
         })
 
-    rack_delivery_summary = build_rack_delivery_summary(power_system)
-    for row in rack_delivery_summary.rows:
+    power_handoff_summary = build_power_handoff_summary(power_system)
+    for row in power_handoff_summary.rows:
         for assessment in row.assessments:
             if assessment.is_compliant:
                 continue
             if 'distinct_path_count_not_met' in assessment.finding_types:
                 findings.append({
                     'finding_type': 'distinct_path_count_not_met',
-                    'message': _('Rack delivery does not satisfy the minimum distinct path count for the redundancy group.'),
+                    'message': _('Power handoff does not satisfy the minimum distinct path count for the redundancy group.'),
                     'object': row.terminal,
                     'node': row.node,
                     'redundancy_group': assessment.redundancy_group,
@@ -121,15 +124,57 @@ def run_topology_checks(power_system):
             if 'domain_isolation_not_met' in assessment.finding_types:
                 findings.append({
                     'finding_type': 'domain_isolation_not_met',
-                    'message': _('Rack delivery paths collapse before maintaining the required domain isolation.'),
+                    'message': _('Power handoff paths collapse before maintaining the required domain isolation.'),
                     'object': row.terminal,
                     'node': row.node,
                     'redundancy_group': assessment.redundancy_group,
                     'matched_domains': assessment.matched_domains,
                 })
 
+    from netbox_power_plant.services.completeness import build_completeness_findings
+
+    findings.extend(build_completeness_findings(power_system))
+
     return {
         'power_system_id': power_system.pk,
         'finding_count': len(findings),
         'findings': findings,
     }
+
+
+def build_missing_detail_findings(nodes):
+    from netbox_power_plant.models import (
+        BESSDetail,
+        BuswaySectionDetail,
+        GeneratorDetail,
+        TransformerDetail,
+        UPSDetail,
+    )
+
+    detail_models_by_kind = {
+        NodeKindChoices.KIND_UPS: ('UPS detail', UPSDetail),
+        NodeKindChoices.KIND_GENERATOR: ('generator detail', GeneratorDetail),
+        NodeKindChoices.KIND_TRANSFORMER: ('transformer detail', TransformerDetail),
+        NodeKindChoices.KIND_BESS: ('BESS detail', BESSDetail),
+        NodeKindChoices.KIND_BUSWAY_RUN: ('busway section detail', BuswaySectionDetail),
+    }
+    findings = []
+
+    for node in nodes:
+        label_model = detail_models_by_kind.get(node.node_kind)
+        if label_model is None:
+            continue
+        label, detail_model = label_model
+        if detail_model.objects.filter(node_id=node.pk).exists():
+            continue
+        findings.append({
+            'finding_type': 'missing_equipment_detail',
+            'message': _('Active %(kind)s nodes must have a %(detail)s record for audit and EPMS/BMS integration.') % {
+                'kind': node.get_node_kind_display(),
+                'detail': label,
+            },
+            'object': node,
+            'expected_detail_model': detail_model._meta.label_lower,
+        })
+
+    return findings

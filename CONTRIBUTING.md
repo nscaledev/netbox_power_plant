@@ -10,18 +10,13 @@ This repo follows the same general local-development pattern as `netbox_rpki`
 and `netbox_multiplanar_fabrics`, but it has its own `devrun` wrapper,
 Compose project name, state directory, and plugin-specific environment flags.
 
-Layout-aware development also assumes the floorplan plugin package
-`netbox-floorplan-plugin` is installed into the pinned NetBox virtualenv and is
-enabled in NetBox as `netbox_floorplan`.
-
 In the standard workspace layout, the baseline NetBox checkout at
 `~/src/netbox-v4.2.3/netbox` uses its own `./devrun/dev.sh` wrapper with
-PostgreSQL on `5435` and Redis on `6382`; bring that baseline runtime up before
-running floorplan-related management commands there.
+PostgreSQL on `5435` and Redis on `6382`.
 
-When changing floorplan-aware code paths, keep the graceful-degradation
-contract intact: `netbox_power_plant` should continue to function for
-topology-only workflows even when `netbox_floorplan` is unavailable.
+Layout-aware development uses `netbox_power_plant`'s own `SpatialFrame` and
+`SpatialPlacement` models. Do not add a dependency on `netbox_floorplan`; the
+plugin owns its own placement semantics.
 
 ### Generating Migrations Locally
 
@@ -62,8 +57,9 @@ Lane intent:
 - `contract`: plugin configuration and runtime wiring checks
 - `full`: the full plugin test package
 
-For floorplan-aware slices, add focused tests around service-level feature
-detection and scope resolution before widening into NetBox view coverage.
+For spatial-placement slices, add focused tests around service-level coordinate
+resolution, placement validation, and scope behavior before widening into
+NetBox view coverage.
 
 ## Pull Request Guidelines
 

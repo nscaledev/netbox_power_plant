@@ -33,8 +33,86 @@
             <dt class="col-7">Domains</dt><dd class="col-5 text-end">{{ object.power_domains.count }}</dd>
             <dt class="col-7">Redundancy Groups</dt><dd class="col-5 text-end">{{ object.redundancy_groups.count }}</dd>
             <dt class="col-7">Internal Power Buses</dt><dd class="col-5 text-end">{{ object.internal_power_buses.count }}</dd>
-            <dt class="col-7">Modeled Delivery Points</dt><dd class="col-5 text-end">{{ object.rack_delivery_points.count }}</dd>
+            <dt class="col-7">Modeled Handoff Points</dt><dd class="col-5 text-end">{{ object.power_handoff_points.count }}</dd>
           </dl>
+        </div>
+      </div>
+      <div class="card mb-3">
+        <div class="card-header">
+          <h2 class="card-title">Capacity</h2>
+        </div>
+        <div class="card-body">
+          <dl class="row mb-3">
+            <dt class="col-7">Total Load</dt><dd class="col-5 text-end">{{ capacity_summary.total_load_kw }} kW</dd>
+            <dt class="col-7">Capacity</dt>
+            <dd class="col-5 text-end">
+              {% if capacity_summary.total_capacity_kw != None %}{{ capacity_summary.total_capacity_kw }} kW{% else %}—{% endif %}
+            </dd>
+            <dt class="col-7">Headroom</dt>
+            <dd class="col-5 text-end">
+              {% if capacity_summary.headroom_kw != None %}{{ capacity_summary.headroom_kw }} kW{% else %}—{% endif %}
+            </dd>
+            <dt class="col-7">Findings</dt><dd class="col-5 text-end">{{ capacity_summary.finding_count }}</dd>
+          </dl>
+          {% if capacity_summary.top_findings %}
+            <ul class="small text-secondary mb-0 ps-3">
+              {% for finding in capacity_summary.top_findings %}
+                <li>{{ finding.message }}</li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <p class="small text-secondary mb-0">No capacity findings.</p>
+          {% endif %}
+        </div>
+      </div>
+      <div class="card mb-3">
+        <div class="card-header">
+          <h2 class="card-title">Planning</h2>
+        </div>
+        <div class="card-body">
+          <dl class="row mb-3">
+            <dt class="col-7">Reserved Load</dt><dd class="col-5 text-end">{{ capacity_plan.reserved_load_kw }} kW</dd>
+            <dt class="col-7">Projected Load</dt><dd class="col-5 text-end">{{ capacity_plan.projected_load_kw }} kW</dd>
+            <dt class="col-7">Projected Headroom</dt>
+            <dd class="col-5 text-end">
+              {% if capacity_plan.projected_headroom_kw != None %}{{ capacity_plan.projected_headroom_kw }} kW{% else %}—{% endif %}
+            </dd>
+            <dt class="col-7">Projected Findings</dt><dd class="col-5 text-end">{{ capacity_plan.projected_capacity_finding_count }}</dd>
+          </dl>
+          {% if capacity_plan.top_projected_capacity_findings %}
+            <ul class="small text-secondary mb-0 ps-3">
+              {% for finding in capacity_plan.top_projected_capacity_findings %}
+                <li>{{ finding.message }}</li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <p class="small text-secondary mb-0">No projected capacity findings.</p>
+          {% endif %}
+        </div>
+      </div>
+      <div class="card mb-3">
+        <div class="card-header">
+          <h2 class="card-title">Completeness</h2>
+        </div>
+        <div class="card-body">
+          <dl class="row mb-3">
+            <dt class="col-8">Rack-boundary Candidates</dt><dd class="col-4 text-end">{{ completeness_summary.total_rack_boundary_candidates }}</dd>
+            <dt class="col-8">Modeled Handoffs</dt><dd class="col-4 text-end">{{ completeness_summary.modeled_handoff_count }}</dd>
+            <dt class="col-8">Handoffs With Paths</dt><dd class="col-4 text-end">{{ completeness_summary.handoffs_with_active_graph_path_count }}</dd>
+            <dt class="col-8">Handoffs Without Paths</dt><dd class="col-4 text-end">{{ completeness_summary.handoffs_without_active_path_count }}</dd>
+            <dt class="col-8">Unmodeled Power Ports</dt><dd class="col-4 text-end">{{ completeness_summary.unmodeled_power_port_count }}</dd>
+            <dt class="col-8">Bus Ports Unattached</dt><dd class="col-4 text-end">{{ completeness_summary.internal_bus_coverage.uncovered_power_port_count }}</dd>
+            <dt class="col-8">Completeness Findings</dt><dd class="col-4 text-end">{{ completeness_summary.finding_count }}</dd>
+          </dl>
+          {% if completeness_summary.findings %}
+            <ul class="small text-secondary mb-0 ps-3">
+              {% for finding in completeness_summary.findings|slice:':5' %}
+                <li>{{ finding.message }}</li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <p class="small text-secondary mb-0">Plant handoffs, scoped power ports, and bus attachments are complete.</p>
+          {% endif %}
         </div>
       </div>
       <div class="card mb-3">
@@ -43,20 +121,20 @@
         </div>
         <div class="card-body">
           {% if not layout_health.is_available %}
-            <p class="text-secondary mb-2">Layout integration is unavailable in this environment.</p>
-            <p class="small text-secondary mb-0">{{ layout_health.availability_reason|default:'The floorplan plugin is not available.' }}</p>
+            <p class="text-secondary mb-2">Native spatial layout is unavailable in this environment.</p>
+            <p class="small text-secondary mb-0">{{ layout_health.availability_reason|default:'Native spatial models are not available.' }}</p>
           {% elif layout_health.is_healthy %}
             <p class="mb-2"><span class="badge text-bg-success">Healthy</span></p>
             <dl class="row mb-0">
-              <dt class="col-7">Mapped Delivery</dt><dd class="col-5 text-end">{{ layout_health.mapped_delivery_count }}</dd>
+              <dt class="col-7">Placed Handoffs</dt><dd class="col-5 text-end">{{ layout_health.mapped_delivery_count }}</dd>
               <dt class="col-7">Findings</dt><dd class="col-5 text-end">0</dd>
             </dl>
           {% else %}
             <p class="mb-2"><span class="badge text-bg-warning">Needs attention</span></p>
             <dl class="row mb-3">
               <dt class="col-8">Findings</dt><dd class="col-4 text-end">{{ layout_health.finding_count }}</dd>
-              <dt class="col-8">Unmapped Delivery</dt><dd class="col-4 text-end">{{ layout_health.unmapped_delivery_count }}</dd>
-              <dt class="col-8">Orphan Mappings</dt><dd class="col-4 text-end">{{ layout_health.orphan_mapped_asset_count }}</dd>
+              <dt class="col-8">Unplaced Handoffs</dt><dd class="col-4 text-end">{{ layout_health.unmapped_delivery_count }}</dd>
+              <dt class="col-8">Orphan Placements</dt><dd class="col-4 text-end">{{ layout_health.orphan_mapped_asset_count }}</dd>
               <dt class="col-8">Redundancy Gaps</dt><dd class="col-4 text-end">{{ layout_health.redundancy_gap_count }}</dd>
             </dl>
             <ul class="small text-secondary mb-0 ps-3">
@@ -67,17 +145,33 @@
           {% endif %}
         </div>
       </div>
+      <div class="card mb-3">
+        <div class="card-header">
+          <h2 class="card-title">Validation</h2>
+        </div>
+        <div class="card-body">
+          <div class="d-grid gap-2">
+            {% for item in validation_actions %}
+              <form method="post" action="{{ item.url }}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-outline-primary w-100">{{ item.action.label }}</button>
+                <div class="small text-secondary mt-1">{{ item.action.description }}</div>
+              </form>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
       <div class="card">
         <div class="card-header">
           <h2 class="card-title">Layout Views</h2>
         </div>
         <div class="card-body">
-          <p class="text-secondary">Review layout posture and start controlled placement or delivery modeling from this power system scope.</p>
+          <p class="text-secondary">Review spatial posture and start controlled placement or power handoff modeling from this power system scope.</p>
           <div class="d-grid gap-2">
             <a class="btn btn-primary" href="{{ workflow_urls.layout }}">Open Layout View</a>
-            <a class="btn btn-outline-primary" href="{{ workflow_urls.rack_delivery }}">Open Rack Delivery Summary</a>
+            <a class="btn btn-outline-primary" href="{{ workflow_urls.power_handoff_summary }}">Open Power Handoff Summary</a>
             {% if workflow_urls.placement_add %}<a class="btn btn-outline-secondary" href="{{ workflow_urls.placement_add }}">Add Facility Placement</a>{% endif %}
-            {% if workflow_urls.delivery_add %}<a class="btn btn-outline-secondary" href="{{ workflow_urls.delivery_add }}">Add Rack Delivery Point</a>{% endif %}
+            {% if workflow_urls.delivery_add %}<a class="btn btn-outline-secondary" href="{{ workflow_urls.delivery_add }}">Add Power Handoff Point</a>{% endif %}
           </div>
         </div>
       </div>

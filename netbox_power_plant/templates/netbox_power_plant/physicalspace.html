@@ -1,0 +1,51 @@
+{% extends 'generic/object.html' %}
+{% load helpers %}
+
+{% block content %}
+  <div class="row">
+    <div class="col-md-8">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Physical Space Details</h2>
+        </div>
+        <div class="card-body">
+          <table class="table table-hover attr-table mb-0">
+            <tr><th>Site</th><td>{{ object.site|linkify }}</td></tr>
+            <tr><th>Location</th><td>{{ object.location|linkify|default:'—' }}</td></tr>
+            <tr><th>Spatial Frame</th><td>{{ object.spatial_frame|linkify|default:'—' }}</td></tr>
+            <tr><th>Parent Space</th><td>{{ object.parent_space|linkify|default:'—' }}</td></tr>
+            <tr><th>Space Kind</th><td>{{ object.get_space_kind_display }}</td></tr>
+            <tr><th>Floor Label</th><td>{{ object.floor_label|default:'—' }}</td></tr>
+            <tr><th>Z Min</th><td>{{ object.z_min|default:'—' }}</td></tr>
+            <tr><th>Z Max</th><td>{{ object.z_max|default:'—' }}</td></tr>
+            <tr><th>Source Document</th><td>{{ object.source_document|default:'—' }}</td></tr>
+            <tr><th>Source Ref</th><td>{{ object.source_ref|default:'—' }}</td></tr>
+            <tr><th>Confidence</th><td>{{ object.get_confidence_display }}</td></tr>
+            <tr><th>Description</th><td>{{ object.description|default:'—' }}</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Space Coverage</h2>
+        </div>
+        <div class="card-body">
+          <dl class="row mb-0">
+            <dt class="col-7">Child Spaces</dt><dd class="col-5 text-end">{{ object.child_spaces.count }}</dd>
+            <dt class="col-7">Physical Elements</dt><dd class="col-5 text-end">{{ object.physical_elements.count }}</dd>
+          </dl>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Geometry</h2>
+        </div>
+        <div class="card-body">
+          <pre class="mb-0">{{ object.boundary_geometry|default:'{}' }}</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}

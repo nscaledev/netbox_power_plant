@@ -1,0 +1,25 @@
+{% extends 'generic/_base.html' %}
+
+{% block title %}Delete {{ object }}{% endblock %}
+
+{% block content %}
+  <div class="row">
+    <div class="col-lg-6">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Delete {{ object }}</h2>
+        </div>
+        <div class="card-body">
+          <form method="post">
+            {% csrf_token %}
+            <p>Delete this record?</p>
+            <div class="btn-list">
+              <button type="submit" class="btn btn-danger">Delete</button>
+              <a href="{{ list_url }}" class="btn btn-secondary">Cancel</a>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}

@@ -1,7 +1,9 @@
 {% extends 'generic/object.html' %}
-{% load helpers %}
+{% load helpers static %}
 
 {% block content %}
+  <link rel="stylesheet" href="{% static 'netbox_power_plant/power_layout.css' %}">
+
   <div class="row mb-3">
     <div class="col-md-8">
       <div class="card h-100">
@@ -9,26 +11,26 @@
           <h2 class="card-title">Power System Layout</h2>
         </div>
         <div class="card-body">
-          {% if not layout.floorplan_context.availability.is_available %}
+          {% if not layout.spatial_context.availability.is_available %}
             <div class="alert alert-warning mb-0">
-              <strong>Layout integration unavailable.</strong>
-              {{ layout.floorplan_context.availability.reason|default:'The floorplan plugin is not available in this environment.' }}
+              <strong>Native spatial layout unavailable.</strong>
+              {{ layout.spatial_context.availability.reason|default:'Native spatial models are not available in this environment.' }}
             </div>
-          {% elif not layout.has_floorplan %}
+          {% elif not layout.has_spatial_frame %}
             <div class="alert alert-secondary mb-0">
-              <strong>No floorplan resolved.</strong>
-              This power system currently resolves to no site or location floorplan.
+              <strong>No spatial underlay resolved.</strong>
+              This power system currently resolves to no site or location spatial underlay.
             </div>
           {% else %}
             <table class="table table-hover attr-table mb-0">
-              <tr><th>Resolved Floorplan</th><td>{% if layout.floorplan_context.floorplan_url %}<a href="{{ layout.floorplan_context.floorplan_url }}">{{ layout.floorplan_context.floorplan_name }}</a>{% else %}{{ layout.floorplan_context.floorplan_name }}{% endif %}</td></tr>
-              <tr><th>Resolved Scope</th><td>{{ layout.floorplan_context.source_scope|title }}{% if layout.floorplan_context.source_object_id %} #{{ layout.floorplan_context.source_object_id }}{% endif %}</td></tr>
-              <tr><th>Canvas Size</th><td>{% if layout.floorplan_context.width and layout.floorplan_context.height %}{{ layout.floorplan_context.width }} × {{ layout.floorplan_context.height }} {{ layout.floorplan_context.measurement_unit|default:'' }}{% else %}—{% endif %}</td></tr>
-              <tr><th>Mapped Racks</th><td>{{ layout.floorplan_context.mapped_racks|length }}</td></tr>
-              <tr><th>Mapped Devices</th><td>{{ layout.floorplan_context.mapped_devices|length }}</td></tr>
-              <tr><th>Facility Placements</th><td>{{ layout.placements|length }}</td></tr>
-              <tr><th>Mapped Delivery Endpoints</th><td>{{ layout.mapped_delivery_count }}</td></tr>
-              <tr><th>Unmapped Delivery Endpoints</th><td>{{ layout.unmapped_delivery_count }}</td></tr>
+              <tr><th>Spatial Underlay</th><td>{% if layout.spatial_context.spatial_frame_url %}<a href="{{ layout.spatial_context.spatial_frame_url }}">{{ layout.spatial_context.spatial_frame_name }}</a>{% else %}{{ layout.spatial_context.spatial_frame_name }}{% endif %}</td></tr>
+              <tr><th>Resolved Scope</th><td>{{ layout.spatial_context.source_scope|title }}{% if layout.spatial_context.source_object_id %} #{{ layout.spatial_context.source_object_id }}{% endif %}</td></tr>
+              <tr><th>Underlay Size</th><td>{% if layout.spatial_context.width and layout.spatial_context.height %}{{ layout.spatial_context.width }} × {{ layout.spatial_context.height }} {{ layout.spatial_context.measurement_unit|default:'' }}{% else %}—{% endif %}</td></tr>
+              <tr><th>Rack Placements</th><td>{{ layout.spatial_context.mapped_racks|length }}</td></tr>
+              <tr><th>Device Placements</th><td>{{ layout.spatial_context.mapped_devices|length }}</td></tr>
+              <tr><th>Node Placements</th><td>{{ layout.placements|length }}</td></tr>
+              <tr><th>Placed Power Handoffs</th><td>{{ layout.mapped_delivery_count }}</td></tr>
+              <tr><th>Unplaced Power Handoffs</th><td>{{ layout.unmapped_delivery_count }}</td></tr>
               <tr><th>Inferred-only Boundaries</th><td>{{ layout.inferred_only_rows|length }}</td></tr>
             </table>
           {% endif %}
@@ -42,15 +44,15 @@
         </div>
         <div class="card-body">
           <ul class="mb-0">
-            <li>Facility overlays come from Electrical Node Placements.</li>
-            <li>Rack delivery endpoints come from Rack Delivery Points joined to floorplan-mapped racks and devices.</li>
-            <li>Rows marked compliant inherit redundancy posture from the rack-delivery summary.</li>
-            <li>Inferred-only boundaries are active rack-boundary graph paths without persisted delivery intent yet.</li>
+            <li>Facility overlays come from native spatial placements.</li>
+            <li>Power handoff endpoints come from PowerHandoffPoint records that target native NetBox PowerPort objects.</li>
+            <li>Rows marked compliant inherit redundancy posture from the power handoff summary.</li>
+            <li>Inferred-only boundaries are active rack-boundary graph paths without persisted power handoff intent yet.</li>
           </ul>
           {% if workflow_urls.placement_add or workflow_urls.delivery_add %}
             <div class="d-grid gap-2 mt-3">
               {% if workflow_urls.placement_add %}<a class="btn btn-primary" href="{{ workflow_urls.placement_add }}">Add Facility Placement</a>{% endif %}
-              {% if workflow_urls.delivery_add %}<a class="btn btn-outline-primary" href="{{ workflow_urls.delivery_add }}">Add Rack Delivery Point</a>{% endif %}
+              {% if workflow_urls.delivery_add %}<a class="btn btn-outline-primary" href="{{ workflow_urls.delivery_add }}">Add Power Handoff Point</a>{% endif %}
             </div>
           {% endif %}
         </div>
@@ -58,134 +60,239 @@
     </div>
   </div>
 
-  {% if layout.has_floorplan %}
-    <div class="row">
-      <div class="col-md-6 mb-3">
-        <div class="card h-100">
-          <div class="card-header">
-            <h2 class="card-title">Facility Overlays</h2>
-          </div>
-          <div class="card-body p-0">
-            <table class="table table-hover mb-0">
-              <thead>
-                <tr>
-                  <th>Placement</th>
-                  <th>Scope</th>
-                  <th>Coordinates</th>
-                  <th>Rendering</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for action in placement_actions %}
-                  <tr>
-                    <td><a href="{% url 'plugins:netbox_power_plant:electricalnodeplacement' pk=action.item.placement.pk %}">{{ action.item.placement.name }}</a><br><small class="text-secondary">{{ action.item.node.name }}</small></td>
-                    <td>{{ action.item.scope_label }}</td>
-                    <td>{{ action.item.x }}, {{ action.item.y }}</td>
-                    <td>{{ action.item.symbol_kind }}<br><small class="text-secondary">{{ action.item.label_mode }} / z{{ action.item.z_index }}</small></td>
-                    <td class="text-end">{% if action.edit_url %}<a class="btn btn-sm btn-outline-primary" href="{{ action.edit_url }}">Edit placement</a>{% endif %}</td>
-                  </tr>
-                {% empty %}
-                  <tr><td colspan="5" class="text-secondary">No electrical node placements are defined for this power system.</td></tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
+  {% if visual_map.is_available %}
+    <div class="card mb-3 power-layout-map" data-power-layout-map>
+      <div class="card-header d-flex align-items-center justify-content-between gap-2">
+        <h2 class="card-title mb-0">Operations Map</h2>
+        <div class="power-layout-legend" aria-label="Operations map legend">
+          <span><i class="power-layout-legend-swatch power-layout-legend-swatch-node"></i>Node</span>
+          <span><i class="power-layout-legend-swatch power-layout-legend-swatch-segment"></i>Active segment</span>
+          <span><i class="power-layout-legend-swatch power-layout-legend-swatch-asset"></i>Rack/device</span>
+          <span><i class="power-layout-legend-swatch power-layout-legend-swatch-handoff"></i>Handoff</span>
         </div>
       </div>
-      <div class="col-md-6 mb-3">
-        <div class="card h-100">
-          <div class="card-header">
-            <h2 class="card-title">Rack Delivery Endpoints</h2>
-          </div>
-          <div class="card-body p-0">
-            <table class="table table-hover mb-0">
-              <thead>
+      <div class="card-body">
+        <svg
+          class="power-layout-svg"
+          viewBox="{{ visual_map.view_box }}"
+          role="img"
+          aria-label="Power operations map for {{ object }}"
+          data-power-layout-svg
+        >
+          <rect class="power-layout-frame" x="0" y="0" width="{{ visual_map.width }}" height="{{ visual_map.height }}" rx="0" />
+
+          <g class="power-layout-segments">
+            {% for segment in visual_map.segments %}
+              <line
+                class="power-layout-segment"
+                x1="{{ segment.x1 }}"
+                y1="{{ segment.y1 }}"
+                x2="{{ segment.x2 }}"
+                y2="{{ segment.y2 }}"
+                data-power-map-item
+                data-trace-keys="{{ segment.trace_keys|join:' ' }}"
+                data-segment-id="{{ segment.segment_id }}"
+                data-from-node-id="{{ segment.from_node_id }}"
+                data-to-node-id="{{ segment.to_node_id }}"
+              >
+                <title>{{ segment.label }}</title>
+              </line>
+            {% endfor %}
+          </g>
+
+          <g class="power-layout-assets">
+            {% for asset in visual_map.assets %}
+              <g
+                class="power-layout-asset power-layout-asset-{{ asset.object_type }}"
+                transform="translate({{ asset.x }} {{ asset.y }})"
+                data-power-map-item
+                data-trace-keys="{{ asset.trace_keys|join:' ' }}"
+                data-object-type="{{ asset.object_type }}"
+                data-object-id="{{ asset.object_id }}"
+              >
+                <rect x="-2.5" y="-2.5" width="5" height="5" />
+                <title>{{ asset.label }}</title>
+              </g>
+            {% endfor %}
+          </g>
+
+          <g class="power-layout-nodes">
+            {% for node in visual_map.nodes %}
+              <g
+                class="power-layout-node"
+                transform="translate({{ node.x }} {{ node.y }})"
+                data-power-map-item
+                data-trace-keys="{{ node.trace_keys|join:' ' }}"
+                data-node-id="{{ node.node_id }}"
+                data-node-kind="{{ node.kind|default:'' }}"
+              >
+                <circle r="2.2" fill="{{ node.color }}" />
+                <title>{{ node.label }}</title>
+              </g>
+            {% endfor %}
+          </g>
+
+          <g class="power-layout-handoffs">
+            {% for handoff in visual_map.handoffs %}
+              <g
+                class="power-layout-handoff"
+                transform="translate({{ handoff.x }} {{ handoff.y }})"
+                tabindex="0"
+                role="button"
+                aria-label="Trace {{ handoff.label }}"
+                data-power-map-item
+                data-power-trace-key="{{ handoff.trace.key }}"
+                data-trace-keys="{{ handoff.trace.key }}"
+                data-handoff-id="{{ handoff.handoff_id }}"
+                data-trace-node-ids="{{ handoff.trace.node_ids|join:',' }}"
+                data-trace-segment-ids="{{ handoff.trace.segment_ids|join:',' }}"
+              >
+                <circle r="3" />
+                <path d="M 0 -5 L 1.4 -1.4 L 5 0 L 1.4 1.4 L 0 5 L -1.4 1.4 L -5 0 L -1.4 -1.4 Z" />
+                <title>{{ handoff.label }}{% if handoff.target_label %} / {{ handoff.target_label }}{% endif %}</title>
+              </g>
+            {% endfor %}
+          </g>
+        </svg>
+      </div>
+    </div>
+  {% endif %}
+
+  <div class="row">
+    <div class="col-md-6 mb-3">
+      <div class="card h-100">
+        <div class="card-header">
+          <h2 class="card-title">Node Placements</h2>
+        </div>
+        <div class="card-body p-0">
+          <table class="table table-hover mb-0">
+            <thead>
+              <tr>
+                <th>Placement</th>
+                <th>Scope</th>
+                <th>Coordinates</th>
+                <th>Rendering</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for action in placement_actions %}
                 <tr>
-                  <th>Delivery Point</th>
-                  <th>Target</th>
-                  <th>Coordinates</th>
-                  <th>Redundancy</th>
-                  <th></th>
+                  <td>{{ action.item.placement.name }}<br><small class="text-secondary">{{ action.item.object_name|default:action.item.node.name }}</small></td>
+                  <td>{{ action.item.scope_label }}</td>
+                  <td>{{ action.item.x }}, {{ action.item.y }}</td>
+                  <td>{{ action.item.symbol_kind }}<br><small class="text-secondary">{{ action.item.label_mode }} / z{{ action.item.z_index }}</small></td>
+                  <td class="text-end">{% if action.edit_url %}<a class="btn btn-sm btn-outline-primary" href="{{ action.edit_url }}">Edit placement</a>{% endif %}</td>
                 </tr>
-              </thead>
-              <tbody>
-                {% for action in delivery_overlay_actions %}
-                  <tr>
-                    <td><a href="{% url 'plugins:netbox_power_plant:rackdeliverypoint' pk=action.item.delivery_point.pk %}">{{ action.item.delivery_point.feed_label|default:action.item.delivery_point.name }}</a></td>
-                    <td>{{ action.item.target_name }}<br><small class="text-secondary">{{ action.item.target_type|title }}</small></td>
-                    <td>{% if action.item.is_mapped_on_floorplan %}{{ action.item.x }}, {{ action.item.y }}{% else %}<span class="text-warning">Unmapped on floorplan</span>{% endif %}</td>
-                    <td>{% if action.item.is_redundancy_compliant %}<span class="badge text-bg-success">Compliant</span>{% else %}<span class="badge text-bg-warning">Needs attention</span>{% endif %}<br><small class="text-secondary">{{ action.item.assessment_summary }}</small></td>
-                    <td class="text-end">{% if action.edit_url %}<a class="btn btn-sm btn-outline-primary" href="{{ action.edit_url }}">Edit delivery point</a>{% endif %}</td>
-                  </tr>
-                {% empty %}
-                  <tr><td colspan="5" class="text-secondary">No persisted rack delivery points are available for layout rendering.</td></tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
+              {% empty %}
+                <tr><td colspan="5" class="text-secondary">No native spatial node placements are defined for this power system.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
-    <div class="row">
-      <div class="col-md-7 mb-3">
-        <div class="card h-100">
-          <div class="card-header">
-            <h2 class="card-title">Mapped Floorplan Assets</h2>
-          </div>
-          <div class="card-body p-0">
-            <table class="table table-hover mb-0">
-              <thead>
-                <tr>
-                  <th>Asset</th>
-                  <th>Coordinates</th>
-                  <th>Delivery Modeling</th>
+    <div class="col-md-6 mb-3">
+      <div class="card h-100">
+        <div class="card-header">
+          <h2 class="card-title">Power Handoff Points</h2>
+        </div>
+        <div class="card-body p-0">
+          <table class="table table-hover mb-0">
+            <thead>
+              <tr>
+                <th>Power Handoff Point</th>
+                <th>Target</th>
+                <th>Coordinates</th>
+                <th>Redundancy</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for action in delivery_overlay_actions %}
+                <tr
+                  tabindex="0"
+                  data-power-trace-key="handoff-{{ action.item.delivery_point.pk }}"
+                  data-handoff-id="{{ action.item.delivery_point.pk }}"
+                >
+                  <td><a href="{% url 'plugins:netbox_power_plant:powerhandoffpoint' pk=action.item.delivery_point.pk %}">{{ action.item.delivery_point.feed_label|default:action.item.delivery_point.name }}</a></td>
+                  <td>{{ action.item.target_name }}<br><small class="text-secondary">{{ action.item.target_type|title }}</small></td>
+                  <td>{% if action.item.is_mapped_on_spatial %}{{ action.item.x }}, {{ action.item.y }}{% else %}<span class="text-warning">No spatial placement</span>{% endif %}</td>
+                  <td>{% if action.item.is_redundancy_compliant %}<span class="badge text-bg-success">Compliant</span>{% else %}<span class="badge text-bg-warning">Needs attention</span>{% endif %}<br><small class="text-secondary">{{ action.item.assessment_summary }}</small></td>
+                  <td class="text-end">{% if action.edit_url %}<a class="btn btn-sm btn-outline-primary" href="{{ action.edit_url }}">Edit power handoff point</a>{% endif %}</td>
                 </tr>
-              </thead>
-              <tbody>
+              {% empty %}
+                <tr><td colspan="5" class="text-secondary">No persisted power handoff points are available for layout rendering.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-7 mb-3">
+      <div class="card h-100">
+        <div class="card-header">
+          <h2 class="card-title">Spatial Asset Placements</h2>
+        </div>
+        <div class="card-body p-0">
+          <table class="table table-hover mb-0">
+            <thead>
+              <tr>
+                <th>Asset</th>
+                <th>Coordinates</th>
+                <th>Power Handoff Modeling</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% if layout.has_spatial_frame %}
                 {% for asset in layout.mapped_assets %}
                   <tr>
                     <td>{{ asset.object_name|default:'Unnamed asset' }}<br><small class="text-secondary">{{ asset.object_type|title }}</small></td>
                     <td>{% if asset.x != None and asset.y != None %}{{ asset.x }}, {{ asset.y }}{% else %}—{% endif %}</td>
-                    <td>{% if asset.matched_delivery_points %}{{ asset.matched_delivery_points|length }} modeled endpoint{{ asset.matched_delivery_points|length|pluralize }}{% else %}<span class="text-secondary">No modeled delivery</span>{% endif %}</td>
+                    <td>{% if asset.matched_delivery_points %}{{ asset.matched_delivery_points|length }} modeled handoff{{ asset.matched_delivery_points|length|pluralize }}{% else %}<span class="text-secondary">No modeled power handoff</span>{% endif %}</td>
                   </tr>
                 {% empty %}
-                  <tr><td colspan="3" class="text-secondary">No racks or devices are mapped on the resolved floorplan.</td></tr>
+                  <tr><td colspan="3" class="text-secondary">No racks or devices are placed on the resolved spatial underlay.</td></tr>
                 {% endfor %}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-      <div class="col-md-5 mb-3">
-        <div class="card h-100">
-          <div class="card-header">
-            <h2 class="card-title">Inferred-only Boundaries</h2>
-          </div>
-          <div class="card-body p-0">
-            <table class="table table-hover mb-0">
-              <thead>
-                <tr>
-                  <th>Boundary</th>
-                  <th>Status</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for item in inferred_delivery_actions %}
-                  <tr>
-                    <td>{{ item.row.node.name }} / {{ item.row.terminal.name }}</td>
-                    <td><small class="text-secondary">{{ item.row.assessment_summary }}</small></td>
-                    <td class="text-end">{% if item.create_url %}<a class="btn btn-sm btn-outline-primary" href="{{ item.create_url }}">Model delivery point</a>{% endif %}</td>
-                  </tr>
-                {% empty %}
-                  <tr><td colspan="3" class="text-secondary">Every active rack-boundary row already has modeled delivery intent.</td></tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
+              {% else %}
+                <tr><td colspan="3" class="text-secondary">No spatial underlay is resolved for rack or device placement rendering.</td></tr>
+              {% endif %}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
-  {% endif %}
+    <div class="col-md-5 mb-3">
+      <div class="card h-100">
+        <div class="card-header">
+          <h2 class="card-title">Inferred-only Boundaries</h2>
+        </div>
+        <div class="card-body p-0">
+          <table class="table table-hover mb-0">
+            <thead>
+              <tr>
+                <th>Boundary</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in inferred_delivery_actions %}
+                <tr>
+                  <td>{{ item.row.node.name }} / {{ item.row.terminal.name }}</td>
+                  <td><small class="text-secondary">{{ item.row.assessment_summary }}</small></td>
+                  <td class="text-end">{% if item.create_url %}<a class="btn btn-sm btn-outline-primary" href="{{ item.create_url }}">Model power handoff point</a>{% endif %}</td>
+                </tr>
+              {% empty %}
+                <tr><td colspan="3" class="text-secondary">Every active rack-boundary row already has modeled power handoff intent.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="{% static 'netbox_power_plant/power_layout.js' %}"></script>
 {% endblock %}

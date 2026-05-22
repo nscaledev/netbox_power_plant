@@ -1,0 +1,152 @@
+{% extends 'generic/_base.html' %}
+{% load helpers %}
+
+{% block title %}Operator Center{% endblock %}
+
+{% block content %}
+  <div class="row row-deck mb-4">
+    <div class="col-md-3">
+      <div class="card">
+        <div class="card-body">
+          <div class="text-secondary text-uppercase small">Power Systems</div>
+          <div class="display-6">{{ dashboard.system_count }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card">
+        <div class="card-body">
+          <div class="text-secondary text-uppercase small">Open Findings</div>
+          <div class="display-6">{{ dashboard.open_finding_count }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card">
+        <div class="card-body">
+          <div class="text-secondary text-uppercase small">Critical Findings</div>
+          <div class="display-6">{{ dashboard.critical_finding_count }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card">
+        <div class="card-body">
+          <div class="text-secondary text-uppercase small">Layout Issues</div>
+          <div class="display-6">{{ dashboard.layout_issue_count }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h2 class="card-title">Power Systems</h2>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-hover mb-0">
+        <thead>
+          <tr>
+            <th>Power System</th>
+            <th class="text-end">Load</th>
+            <th class="text-end">Capacity</th>
+            <th class="text-end">Headroom</th>
+            <th>Open Findings</th>
+            <th>Layout Health</th>
+            <th>Recent Runs</th>
+            <th>Quick Links</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in dashboard.rows %}
+            <tr>
+              <td>
+                <a href="{{ row.links.detail }}">{{ row.power_system.name }}</a>
+                <div class="small text-secondary">
+                  {{ row.power_system.site }}
+                  {% if row.power_system.location %} / {{ row.power_system.location }}{% endif %}
+                </div>
+              </td>
+              <td class="text-end">{{ row.total_load_kw }} kW</td>
+              <td class="text-end">
+                {% if row.total_capacity_kw != None %}{{ row.total_capacity_kw }} kW{% else %}&mdash;{% endif %}
+              </td>
+              <td class="text-end">
+                {% if row.headroom_kw != None %}{{ row.headroom_kw }} kW{% else %}&mdash;{% endif %}
+                {% if row.capacity_finding_count %}
+                  <div class="small text-warning">
+                    {{ row.capacity_finding_count }} capacity finding{{ row.capacity_finding_count|pluralize }}
+                  </div>
+                {% endif %}
+              </td>
+              <td>
+                <div class="d-flex flex-wrap gap-1">
+                  {% for severity in row.severity_counts %}
+                    <a class="badge {{ severity.badge_class }}" href="{{ severity.url }}">
+                      {{ severity.label }} {{ severity.count }}
+                    </a>
+                  {% endfor %}
+                </div>
+              </td>
+              <td>
+                {% if not row.layout_health.is_available %}
+                  <span class="badge text-bg-secondary">Unavailable</span>
+                  <div class="small text-secondary">
+                    {{ row.layout_health.availability_reason|default:'Native spatial models are not available.' }}
+                  </div>
+                {% elif row.layout_health.is_healthy %}
+                  <span class="badge text-bg-success">Healthy</span>
+                  <div class="small text-secondary">
+                    {{ row.layout_health.mapped_delivery_count }}
+                    placed handoff{{ row.layout_health.mapped_delivery_count|pluralize }}
+                  </div>
+                {% else %}
+                  <span class="badge text-bg-warning">Needs attention</span>
+                  <div class="small text-secondary">
+                    {{ row.layout_health.unmapped_delivery_count }} unplaced,
+                    {{ row.layout_health.orphan_mapped_asset_count }} orphan,
+                    {{ row.layout_health.redundancy_gap_count }} redundancy
+                  </div>
+                {% endif %}
+              </td>
+              <td>
+                {% if row.recent_validation_runs or row.recent_instantiation_runs %}
+                  {% for run in row.recent_validation_runs %}
+                    <div class="small">
+                      <a href="{{ run.get_absolute_url }}">{{ run.get_run_kind_display }}</a>
+                      <span class="text-secondary">
+                        {{ run.get_status_display }}
+                        {% if run.finding_count %}
+                          ({{ run.finding_count }} finding{{ run.finding_count|pluralize }})
+                        {% endif %}
+                      </span>
+                    </div>
+                  {% endfor %}
+                  {% for run in row.recent_instantiation_runs %}
+                    <div class="small">
+                      <span>{{ run.template.name }}</span>
+                      <span class="text-secondary">{{ run.status }}{% if run.dry_run %}, dry run{% endif %}</span>
+                    </div>
+                  {% endfor %}
+                {% else %}
+                  <span class="text-secondary small">No recent runs</span>
+                {% endif %}
+              </td>
+              <td>
+                <div class="btn-list">
+                  <a class="btn btn-sm btn-outline-primary" href="{{ row.links.layout }}">Layout</a>
+                  <a class="btn btn-sm btn-outline-primary" href="{{ row.links.handoff }}">Handoff</a>
+                  <a class="btn btn-sm btn-outline-secondary" href="{{ row.links.findings }}">Findings</a>
+                </div>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="8" class="text-secondary">No power systems have been created yet.</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% endblock %}

@@ -1,0 +1,24 @@
+{% extends 'generic/object.html' %}
+{% load helpers %}
+
+{% block content %}
+  <div class="row">
+    <div class="col-md-8">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Architecture Template Details</h2>
+        </div>
+        <div class="card-body">
+          <table class="table table-hover attr-table mb-0">
+            <tr><th>Name</th><td>{{ object.name }}</td></tr>
+            <tr><th>Version</th><td>{{ object.version }}</td></tr>
+            <tr><th>Active</th><td>{{ object.is_active|yesno:'Yes,No' }}</td></tr>
+            <tr><th>Template Nodes</th><td>{{ object.nodes.count }}</td></tr>
+            <tr><th>Template Segments</th><td>{{ object.segments.count }}</td></tr>
+            <tr><th>Description</th><td>{{ object.description|default:'-' }}</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}

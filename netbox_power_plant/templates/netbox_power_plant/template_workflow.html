@@ -1,0 +1,163 @@
+{% extends 'generic/_base.html' %}
+{% load helpers %}
+
+{% block title %}Template Workflow{% endblock %}
+
+{% block content %}
+  <div class="row mb-4">
+    <div class="col-lg-8">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Reference Templates</h2>
+          <div class="card-actions">
+            <form method="post">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="seed_reference_templates">
+              <button type="submit" class="btn btn-sm btn-primary">Seed Templates</button>
+            </form>
+          </div>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-hover mb-0">
+            <thead>
+              <tr>
+                <th>Template</th>
+                <th>Version</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for template in reference_templates %}
+                <tr>
+                  <td>{{ template|linkify }}</td>
+                  <td>{{ template.version }}</td>
+                  <td>
+                    {% if template.is_active %}
+                      <span class="badge text-bg-success">Active</span>
+                    {% else %}
+                      <span class="badge text-bg-secondary">Inactive</span>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% empty %}
+                <tr>
+                  <td colspan="3" class="text-secondary">No built-in reference templates are currently seeded.</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-4">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Apply Reviewed Run</h2>
+        </div>
+        <div class="card-body">
+          <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="apply_instantiation_run">
+            <div class="mb-3">
+              <label class="form-label" for="{{ apply_form.run.id_for_label }}">{{ apply_form.run.label }}</label>
+              {{ apply_form.run }}
+              {% if apply_form.run.errors %}<div class="text-danger small">{{ apply_form.run.errors|join:', ' }}</div>{% endif %}
+            </div>
+            <label class="form-check mb-3">
+              {{ apply_form.confirm }}
+              <span class="form-check-label">{{ apply_form.confirm.label }}</span>
+            </label>
+            {% if apply_form.confirm.errors %}<div class="text-danger small mb-3">{{ apply_form.confirm.errors|join:', ' }}</div>{% endif %}
+            {% if apply_form.non_field_errors %}<div class="alert alert-danger">{{ apply_form.non_field_errors|join:', ' }}</div>{% endif %}
+            <button type="submit" class="btn btn-success">Apply Run</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card mb-4">
+    <div class="card-header">
+      <h2 class="card-title">Create Dry Run</h2>
+    </div>
+    <div class="card-body">
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="dry_run_template">
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label class="form-label" for="{{ dry_run_form.power_system.id_for_label }}">{{ dry_run_form.power_system.label }}</label>
+            {{ dry_run_form.power_system }}
+            {% if dry_run_form.power_system.errors %}<div class="text-danger small">{{ dry_run_form.power_system.errors|join:', ' }}</div>{% endif %}
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label" for="{{ dry_run_form.template.id_for_label }}">{{ dry_run_form.template.label }}</label>
+            {{ dry_run_form.template }}
+            {% if dry_run_form.template.errors %}<div class="text-danger small">{{ dry_run_form.template.errors|join:', ' }}</div>{% endif %}
+          </div>
+          <div class="col-12 mb-3">
+            <label class="form-label" for="{{ dry_run_form.context_json.id_for_label }}">{{ dry_run_form.context_json.label }}</label>
+            {{ dry_run_form.context_json }}
+            {% if dry_run_form.context_json.help_text %}<div class="form-hint">{{ dry_run_form.context_json.help_text }}</div>{% endif %}
+            {% if dry_run_form.context_json.errors %}<div class="text-danger small">{{ dry_run_form.context_json.errors|join:', ' }}</div>{% endif %}
+          </div>
+        </div>
+        {% if dry_run_form.non_field_errors %}<div class="alert alert-danger">{{ dry_run_form.non_field_errors|join:', ' }}</div>{% endif %}
+        <button type="submit" class="btn btn-primary">Create Dry Run</button>
+      </form>
+    </div>
+  </div>
+
+  {% if result %}
+    <div class="card">
+      <div class="card-header">
+        <h2 class="card-title">Run Result</h2>
+      </div>
+      <div class="card-body">
+        <div class="row mb-3">
+          <div class="col-md-3">
+            <div class="text-secondary text-uppercase small">Run</div>
+            <div>{{ result.run.name }}</div>
+          </div>
+          <div class="col-md-3">
+            <div class="text-secondary text-uppercase small">Status</div>
+            <div>{{ result.run.status }}</div>
+          </div>
+          <div class="col-md-3">
+            <div class="text-secondary text-uppercase small">Artifacts</div>
+            <div>{{ result.summary.total }}</div>
+          </div>
+          <div class="col-md-3">
+            <div class="text-secondary text-uppercase small">Skipped</div>
+            <div>{{ result.summary.skipped }}</div>
+          </div>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-hover">
+            <thead>
+              <tr>
+                <th>Artifact</th>
+                <th>Action</th>
+                <th>Status</th>
+                <th>Template Key</th>
+                <th>Operator Summary</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for artifact in result.artifacts %}
+                <tr>
+                  <td>{{ artifact.artifact_type }}</td>
+                  <td>{{ artifact.action }}</td>
+                  <td>{{ artifact.status }}</td>
+                  <td>{{ artifact.template_key }}</td>
+                  <td>{{ artifact.operator_summary }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+{% endblock %}

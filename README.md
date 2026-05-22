@@ -14,7 +14,7 @@ This repository follows the same local-development pattern as the sibling
 - plugin-specific enable flags and test settings so multiple local NetBox plugin
   repos can coexist cleanly.
 
-The current scaffold is intentionally minimal. It provides:
+The local development scaffold provides:
 
 - an installable NetBox plugin package;
 - a dedicated `devrun` stack with repo-specific state and Compose naming;
@@ -24,28 +24,52 @@ The current scaffold is intentionally minimal. It provides:
 The NetBox 4.2.3 compatibility branch treats `dcim.PowerPort` as the only
 native NetBox power object at the device boundary. Power panels, feeds, outlets,
 internal rack buses, and delivery paths are modeled in `netbox_power_plant`
-through electrical nodes, terminals, segments, rack delivery points, and
-internal power bus attachments.
+through electrical nodes, terminals, segments, `PowerHandoffPoint` records, and
+internal power bus attachments. A power circuit is considered handed off to
+NetBox only when a `PowerHandoffPoint` targets a real `dcim.PowerPort`.
 
-For the planned domain model and longer implementation direction, see
-`netbox_power_plant_plugin_proposal.md`.
+Physical placement is modeled inside this plugin with `SpatialFrame` and
+`SpatialPlacement`. The plugin no longer depends on `netbox_floorplan` for
+location semantics or layout-aware behavior.
+
+Current operator workflows include:
+
+- bulk staged circuit import and optional `PowerPort` binding via
+  `services.import_workflows`;
+- direct Madison CAD/DWG package upload from the underlay review page, producing
+  source-document, source-layer, coordinate-frame, physical-space, placement,
+  and provenance records for operator approval;
+- plant-to-NetBox handoff completeness checks via `services.completeness`;
+- persisted topology, layout, and capacity validation actions from the power
+  system detail page;
+- reserved-load capacity planning and maintenance impact summaries via
+  `services.operational_planning`;
+- interactive spatial trace highlighting in the power system layout view.
+
+For the planned electrical domain model and longer implementation direction, see
+`netbox_power_plant_plugin_proposal.md`. For the broader future-state
+architecture that recasts the plugin as a physical-site modeling system with
+power as one discipline, see
+`netbox_physical_plant_future_state_architecture.md`.
 
 ## Requirements
 
 - NetBox 4.2.x (4.2.0 – 4.2.99)
 - Python 3.12+
+- CAD import/conversion support is mandatory. The base package installs
+  `ezdwg[dxf]` so the site modeling workflow can ingest DWG packages directly.
+- NetBox deployments that expose the CAD upload workflow must allow large
+  request bodies at their reverse proxy or NGINX Unit layer, and must raise
+  Django's `DATA_UPLOAD_MAX_MEMORY_SIZE` above the intended CAD package size.
+  Deployments that allow direct multi-file selection should also raise
+  `DATA_UPLOAD_MAX_NUMBER_FILES` above the expected CAD file count. The plugin
+  accepts up to 500 supported CAD files, a 2 GiB CAD upload package, and 2 GiB
+  of extracted CAD contents.
 
 ## Installation
 
 ```bash
 pip install -e ".[test]"
-```
-
-For layout-aware development, install the floorplan plugin package into the
-same NetBox virtual environment:
-
-```bash
-pip install -e ~/src/netbox-floorplan-plugin
 ```
 
 Add `netbox_power_plant` to the `PLUGINS` list in your NetBox `configuration.py`:
@@ -54,12 +78,8 @@ Add `netbox_power_plant` to the `PLUGINS` list in your NetBox `configuration.py`
 PLUGINS = ['netbox_power_plant']
 ```
 
-Layout-aware features use the floorplan plugin package
-`netbox-floorplan-plugin`, exposed to NetBox as `netbox_floorplan`. In the
-current local baseline, `netbox_floorplan` is enabled in the pinned NetBox 4.2.3
-configuration. `netbox_power_plant` still degrades cleanly when that plugin is
-missing or disabled: the electrical topology surfaces remain available, while
-floorplan-aware adapter results simply report no resolved floorplan context.
+No companion floorplan plugin is required. Layout and placement development
+should use the plugin-native spatial models and services.
 
 ## Development
 

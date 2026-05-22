@@ -1,0 +1,48 @@
+{% extends 'generic/object.html' %}
+{% load helpers %}
+
+{% block content %}
+  <div class="row">
+    <div class="col-md-8">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Spatial Placement Details</h2>
+        </div>
+        <div class="card-body">
+          <table class="table table-hover attr-table mb-0">
+            <tr><th>Spatial Frame</th><td>{{ object.spatial_frame|linkify }}</td></tr>
+            <tr><th>Assigned Object Type</th><td>{{ object.assigned_object_type }}</td></tr>
+            <tr><th>Assigned Object</th><td>{{ object.assigned_object|linkify|default:'—' }}</td></tr>
+            <tr><th>X</th><td>{{ object.x }}</td></tr>
+            <tr><th>Y</th><td>{{ object.y }}</td></tr>
+            <tr><th>Z</th><td>{{ object.z|default:'—' }}</td></tr>
+            <tr><th>Width</th><td>{{ object.width|default:'—' }}</td></tr>
+            <tr><th>Depth</th><td>{{ object.depth|default:'—' }}</td></tr>
+            <tr><th>Height</th><td>{{ object.height|default:'—' }}</td></tr>
+            <tr><th>Rotation</th><td>{{ object.rotation_degrees }}&deg;</td></tr>
+            <tr><th>Anchor</th><td>{{ object.get_anchor_display }}</td></tr>
+            <tr><th>Placement Kind</th><td>{{ object.get_placement_kind_display }}</td></tr>
+            <tr><th>Confidence</th><td>{{ object.get_confidence_display }}</td></tr>
+            <tr><th>Source Document</th><td>{{ object.source_document|default:'—' }}</td></tr>
+            <tr><th>Source Ref</th><td>{{ object.source_ref|default:'—' }}</td></tr>
+            <tr><th>Description</th><td>{{ object.description|default:'—' }}</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Frame Scope</h2>
+        </div>
+        <div class="card-body">
+          <dl class="row mb-0">
+            <dt class="col-5">Site</dt><dd class="col-7 text-end">{{ object.spatial_frame.site|linkify }}</dd>
+            <dt class="col-5">Location</dt><dd class="col-7 text-end">{{ object.spatial_frame.location|linkify|default:'—' }}</dd>
+            <dt class="col-5">Units</dt><dd class="col-7 text-end">{{ object.spatial_frame.units }}</dd>
+          </dl>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}

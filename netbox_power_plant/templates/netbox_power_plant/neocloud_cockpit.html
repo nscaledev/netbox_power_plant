@@ -1,0 +1,155 @@
+{% extends 'generic/_base.html' %}
+
+{% block title %}Neocloud Cockpit{% endblock %}
+
+{% block content %}
+  <div class="row mb-4">
+    <div class="col-lg-5">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Scenario</h2>
+        </div>
+        <div class="card-body">
+          <form method="post">
+            {% csrf_token %}
+            <div class="mb-3">
+              <label class="form-label" for="{{ form.power_system.id_for_label }}">{{ form.power_system.label }}</label>
+              {{ form.power_system }}
+              {% if form.power_system.errors %}<div class="text-danger small">{{ form.power_system.errors|join:', ' }}</div>{% endif %}
+            </div>
+            <div class="mb-3">
+              <label class="form-label" for="{{ form.scenario_type.id_for_label }}">{{ form.scenario_type.label }}</label>
+              {{ form.scenario_type }}
+              {% if form.scenario_type.errors %}<div class="text-danger small">{{ form.scenario_type.errors|join:', ' }}</div>{% endif %}
+            </div>
+            <div class="mb-3">
+              <label class="form-label" for="{{ form.node.id_for_label }}">{{ form.node.label }}</label>
+              {{ form.node }}
+              {% if form.node.errors %}<div class="text-danger small">{{ form.node.errors|join:', ' }}</div>{% endif %}
+            </div>
+            <div class="mb-3">
+              <label class="form-label" for="{{ form.segment.id_for_label }}">{{ form.segment.label }}</label>
+              {{ form.segment }}
+              {% if form.segment.errors %}<div class="text-danger small">{{ form.segment.errors|join:', ' }}</div>{% endif %}
+            </div>
+            <div class="mb-3">
+              <label class="form-label" for="{{ form.domain.id_for_label }}">{{ form.domain.label }}</label>
+              {{ form.domain }}
+              {% if form.domain.errors %}<div class="text-danger small">{{ form.domain.errors|join:', ' }}</div>{% endif %}
+            </div>
+            {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors|join:', ' }}</div>{% endif %}
+            <button type="submit" class="btn btn-primary">Evaluate</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-7">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Operator Summary</h2>
+        </div>
+        <div class="card-body">
+          {% if workflow %}
+            <div class="row">
+              <div class="col-md-3">
+                <div class="text-secondary text-uppercase small">Critical Racks</div>
+                <div class="display-6">{{ workflow.operator_summary.critical_rack_count }}</div>
+              </div>
+              <div class="col-md-3">
+                <div class="text-secondary text-uppercase small">Degraded Racks</div>
+                <div class="display-6">{{ workflow.operator_summary.degraded_rack_count }}</div>
+              </div>
+              <div class="col-md-3">
+                <div class="text-secondary text-uppercase small">Joint Risk</div>
+                <div class="display-6">{{ workflow.operator_summary.joint_power_fabric_rack_count }}</div>
+              </div>
+              <div class="col-md-3">
+                <div class="text-secondary text-uppercase small">Fabric Data</div>
+                {% if workflow.operator_summary.fabric_correlation_available %}
+                  <span class="badge text-bg-success">Available</span>
+                {% else %}
+                  <span class="badge text-bg-secondary">Unavailable</span>
+                {% endif %}
+              </div>
+            </div>
+          {% else %}
+            <p class="text-secondary mb-0">Run a scenario to see power, capacity, and fabric-correlation risk together.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% if workflow %}
+    <div class="card mb-4">
+      <div class="card-header">
+        <h2 class="card-title">Rack Impact</h2>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-hover mb-0">
+          <thead>
+            <tr>
+              <th>Rack</th>
+              <th>Severity</th>
+              <th>Lost Domains</th>
+              <th>Remaining Domains</th>
+              <th>Tenant</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for rack in workflow.impact.racks %}
+              <tr>
+                <td>{{ rack.rack.display|default:rack.rack.name }}</td>
+                <td>{{ rack.severity }}</td>
+                <td>{{ rack.lost_domains|join:', ' }}</td>
+                <td>{{ rack.remaining_domains|join:', ' }}</td>
+                <td>{{ rack.tenant.display|default:'-' }}</td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="5" class="text-secondary">No rack impact was reported for this scenario.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h2 class="card-title">Capacity Rollups</h2>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-hover mb-0">
+          <thead>
+            <tr>
+              <th>Node</th>
+              <th class="text-end">Available kW</th>
+              <th>First Bottleneck</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for rollup in workflow.capacity_rollups %}
+              <tr>
+                <td>{{ rollup.node.display }}</td>
+                <td class="text-end">{{ rollup.available_kw }}</td>
+                <td>
+                  {% if rollup.first_bottleneck %}
+                    {{ rollup.first_bottleneck.node.display }}
+                  {% else %}
+                    <span class="text-secondary">None</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="3" class="text-secondary">No affected rack boundary nodes required capacity rollups.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  {% endif %}
+{% endblock %}

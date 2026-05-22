@@ -74,7 +74,7 @@ class Phase2BModelTestCase(TestCase):
         with self.assertRaises(ValidationError):
             placement.full_clean()
 
-    def test_rejects_location_mismatch_for_resolved_floorplan_scope(self):
+    def test_rejects_location_mismatch_for_resolved_spatial_scope(self):
         placement = ElectricalNodePlacement(
             name='Wrong Room Placement',
             slug='wrong-room-placement',
